@@ -1,10 +1,65 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dev-project</title>
+    <meta name="theme-color" content="#4F46E5" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+
+    <!-- SEO -->
+    <title>BureauStore - Fournitures de Bureau</title>
+    <meta
+      name="description"
+      content="Papeterie, mobilier, informatique : plus de 10 000 références de fournitures de bureau au meilleur prix. Livraison 24/48h en France."
+    />
+    <link rel="canonical" href="https://www.bureaustore.fr/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BureauStore" />
+    <meta property="og:title" content="BureauStore - Fournitures de Bureau" />
+    <meta
+      property="og:description"
+      content="Papeterie, mobilier, informatique : plus de 10 000 références de fournitures de bureau au meilleur prix. Livraison 24/48h en France."
+    />
+    <meta property="og:url" content="https://www.bureaustore.fr/" />
+    <meta property="og:image" content="https://www.bureaustore.fr/og-image.svg" />
+    <meta property="og:locale" content="fr_FR" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BureauStore - Fournitures de Bureau" />
+    <meta
+      name="twitter:description"
+      content="Papeterie, mobilier, informatique : plus de 10 000 références de fournitures de bureau au meilleur prix."
+    />
+    <meta name="twitter:image" content="https://www.bureaustore.fr/og-image.svg" />
+
+    <!-- Robots -->
+    <meta name="robots" content="index, follow" />
+
+    <!-- Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Analytics (Google Analytics 4 — activé via VITE_GA_ID) -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () {
+        dataLayer.push(arguments);
+      };
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX', { send_page_view: false });
+    </script>
   </head>
   <body>
     <div id="root"></div>
