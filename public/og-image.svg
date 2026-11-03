@@ -1,0 +1,34 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>WorkStore - Fournitures de Bureau</title>
+  <desc>Bannière de prévisualisation WorkStore : pentagone teal, point jaune et wordmark sur fond navy</desc>
+
+  <!-- Fond navy -->
+  <rect width="1200" height="630" fill="#0A2540"/>
+
+  <!-- Ambiance teal -->
+  <circle cx="1120" cy="70" r="260" fill="#00797D" opacity="0.35"/>
+  <circle cx="60" cy="600" r="220" fill="#00797D" opacity="0.25"/>
+
+  <!-- Pentagone décoratif (contour) -->
+  <g transform="translate(790,140) scale(6.4)" opacity="0.5">
+    <polygon points="9,9 28,9 41,24 28,39 9,39" fill="none" stroke="#3FD0D4" stroke-width="2"/>
+    <circle cx="14.5" cy="24" r="3" fill="#FFB800"/>
+  </g>
+
+  <!-- Logo WorkStore -->
+  <g transform="translate(96,178) scale(2.4)">
+    <polygon points="9,9 28,9 41,24 28,39 9,39" fill="#00797D" stroke="#00797D" stroke-width="6" stroke-linejoin="round"/>
+    <circle cx="14.5" cy="24" r="3" fill="#FFB800"/>
+    <polyline points="20,17 23.5,31 27,22 30.5,31 34,17" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="256" y="272" font-family="Outfit, 'Segoe UI', Arial, sans-serif" font-size="96" font-weight="800" fill="#FFFFFF">Work<tspan fill="#3FD0D4">Store</tspan></text>
+
+  <!-- Signatures -->
+  <text x="98" y="352" font-family="'Public Sans', Arial, sans-serif" font-size="30" font-weight="700" fill="#3FD0D4">Prix en FCFA · Livraison à Abidjan en 48 h</text>
+  <text x="98" y="400" font-family="'Public Sans', Arial, sans-serif" font-size="26" font-weight="400" fill="#A9BDD0">Orange Money · MTN Money · Wave · Carte bancaire</text>
+
+  <!-- Bandeau accent -->
+  <rect x="0" y="616" width="1200" height="14" fill="#FFB800"/>
+</svg>

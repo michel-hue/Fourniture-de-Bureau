@@ -1,0 +1,183 @@
+@import "tailwindcss";
+
+/**
+ * WorkStore — Design tokens (source de vérité : maquette/SPEC_DESIGN.md)
+ *
+ * Typographie chargée via Google Fonts dans index.html :
+ *   Outfit (600/700/800)  → titres, prix, boutons, wordmark
+ *   Public Sans (400/600/700) → corps, UI, labels, pills, tables
+ *   JetBrains Mono (400/700)  → SKU, n° de commande, codes coupons
+ */
+@theme {
+  /* ============ Typographie ============ */
+  /* Outfit 500/600/700 · Public Sans 400/500/600/700 — pas de graisse 800 :
+     la hiérarchie se fait par la taille et l'espacement, pas par l'épaisseur. */
+  --font-sans: "Public Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Outfit", "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ============ Primaire — Teal WorkStore ============ */
+  /* 50/100  → surfaces teal pâles
+     400     → teal clair (logo & « Store » sur fond navy)
+     600     → couleur de base (boutons, liens actifs, hero)
+     700     → hover de tout ce qui est teal */
+  --color-primary-50: #E3F5F4;
+  --color-primary-100: #D2EFEE;
+  --color-primary-200: #B4E5E4;
+  --color-primary-300: #7FD9DB;
+  --color-primary-400: #3FD0D4;
+  --color-primary-500: #14A6A9;
+  --color-primary-600: #00797D;
+  --color-primary-700: #00585B;
+  --color-primary-800: #004A4D;
+  --color-primary-900: #013C3E;
+  --color-primary-950: #02292B;
+
+  /* ============ Accent — Jaune ============ */
+  /* 500 → CTA promo/paiement, compteur panier, badges promo/stock faible */
+  --color-accent-50: #FFF9E6;
+  --color-accent-100: #FFF2CE;
+  --color-accent-200: #FFE7A3;
+  --color-accent-300: #FFDA70;
+  --color-accent-400: #FFCB3D;
+  --color-accent-500: #FFB800;
+  --color-accent-600: #E5A600;
+  --color-accent-700: #9A7100;
+  --color-accent-800: #7A5900;
+  --color-accent-900: #5C4300;
+  --color-accent-950: #3D2C00;
+
+  /* ============ Encre, surfaces & bordures (tokens WorkStore explicites) ============ */
+  --color-ink: #0A2540; /* navy — texte principal, sidebar admin, texte sur jaune */
+  --color-ink-soft: #5B7083; /* gris-bleu — texte secondaire, labels */
+  --color-ink-muted: #8A9BAA; /* placeholders, méta très discrète */
+  --color-surface: #E3F5F4; /* teal pâle — zone image produit, recherche, chips, tuiles */
+  --color-page: #F7F9FA; /* fond de page (sections, admin, checkout) */
+  --color-border-brand: #E5ECEE; /* bordure standard 1px (cards, header, nav, tables) */
+  --color-line-strong: #CFD9DE; /* contour des champs, steppers, cases à cocher */
+
+  /* ============ Palette statut (pills) ============ */
+  /* En stock / Payée */
+  --color-success-50: #F1FBF4;
+  --color-success-100: #DDF2E4;
+  --color-success-200: #C4E8D2;
+  --color-success-500: #2FA35E;
+  --color-success-600: #1E8A50;
+  --color-success-700: #187A42;
+  --color-success-800: #0F5C33;
+
+  /* Rupture / erreur */
+  --color-error-50: #FEF4F4;
+  --color-error-100: #FBE3E4;
+  --color-error-200: #F7C9CC;
+  --color-error-500: #D8434B;
+  --color-error-600: #C4343D;
+  --color-error-700: #B3262F;
+  --color-error-800: #8C1D25;
+
+  /* Stock faible / à réappro (500 = jaune accent) */
+  --color-warning-50: #FFF9E6;
+  --color-warning-100: #FFEEC2;
+  --color-warning-200: #FFE199;
+  --color-warning-500: #FFB800;
+  --color-warning-600: #E5A600;
+  --color-warning-700: #9A7100;
+  --color-warning-800: #7A5900;
+
+  /* En préparation / info (600/700 = teal) */
+  --color-info-50: #F1FBFB;
+  --color-info-100: #E3F5F4;
+  --color-info-200: #C8ECEB;
+  --color-info-500: #0E9BA0;
+  --color-info-600: #00797D;
+  --color-info-700: #00585B;
+  --color-info-800: #00484A;
+
+  /* Expédiée / neutre (écrase le neutre Tailwind par la valeur spec) */
+  --color-neutral-100: #E4EAF0;
+
+  /* ============ Tints illustration / charts ============ */
+  --color-tint-light: #7fbcbd;
+  --color-tint-mid: #4aa1a3;
+
+  /* ============ Rayons : 8 / 14 / 20 / 99 ============ */
+  --radius-lg: 8px; /* images, inputs, steppers, pagination */
+  --radius-xl: 12px; /* cards, boutons, options, alertes, modals */
+  --radius-2xl: 16px; /* hero, bandeaux, surfaces larges */
+  --radius-3xl: 20px; /* plafond de l'échelle WorkStore */
+  --radius-pill: 99px; /* pills, chips, recherche, badges */
+
+  /* ============ Ombres (alpha navy) ============ */
+  --shadow-card: 0 1px 2px rgba(10, 37, 64, 0.04), 0 1px 3px rgba(10, 37, 64, 0.04);
+  --shadow-sm: 0 1px 2px rgba(10, 37, 64, 0.05);
+  --shadow-hover: 0 2px 4px rgba(10, 37, 64, 0.04), 0 10px 24px -6px rgba(10, 37, 64, 0.10);
+  --shadow-aside: 0 4px 8px rgba(10, 37, 64, 0.04), 0 16px 40px -8px rgba(10, 37, 64, 0.16);
+
+  /* ============ Animations (inchangées) ============ */
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-modal-in: modal-in 0.2s ease-out;
+  --animate-toast-in: toast-in 0.25s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes modal-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+@layer base {
+  body {
+    background-color: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-muted);
+  }
+
+  ::selection {
+    background-color: var(--color-primary-100);
+    color: var(--color-ink);
+  }
+
+  /* Focus visible teal sur tous les composants (accessibilité) */
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-primary-600) 70%, transparent);
+    outline-offset: 2px;
+  }
+}
