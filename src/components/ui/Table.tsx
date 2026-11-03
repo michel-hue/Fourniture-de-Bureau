@@ -31,18 +31,18 @@ export function Table<T>({
     <div className="overflow-x-auto">
       <table className="w-full min-w-[640px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50">
+          <tr>
             {columns.map((column) => (
               <th
                 key={column.key}
                 scope="col"
-                className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                className="border-b border-border-brand bg-page px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-soft first:rounded-tl-lg last:rounded-tr-lg"
               >
                 {column.sortable && onSort ? (
                   <button
                     type="button"
                     onClick={() => onSort(column.key)}
-                    className="inline-flex items-center gap-1 transition-colors hover:text-slate-700"
+                    className="inline-flex items-center gap-1 transition-colors hover:text-primary-600"
                   >
                     {column.label}
                     {sortKey === column.key ? (
@@ -52,7 +52,7 @@ export function Table<T>({
                         <ArrowDown size={14} aria-hidden="true" />
                       )
                     ) : (
-                      <ArrowUpDown size={14} className="text-slate-400" aria-hidden="true" />
+                      <ArrowUpDown size={14} className="text-ink-soft/60" aria-hidden="true" />
                     )}
                   </button>
                 ) : (
@@ -65,10 +65,10 @@ export function Table<T>({
         <tbody>
           {loading ? (
             Array.from({ length: 5 }).map((_, index) => (
-              <tr key={`skeleton-${index}`} className="border-b border-slate-100">
+              <tr key={`skeleton-${index}`} className="border-t border-border-brand">
                 {columns.map((column) => (
                   <td key={column.key} className="px-4 py-3">
-                    <div className="h-4 w-full animate-pulse rounded bg-slate-200/70" />
+                    <div className="h-4 w-full animate-pulse rounded bg-page" />
                   </td>
                 ))}
               </tr>
@@ -77,7 +77,7 @@ export function Table<T>({
             <tr>
               <td
                 colSpan={columns.length}
-                className="px-4 py-10 text-center text-sm text-slate-500"
+                className="px-4 py-10 text-center text-sm text-ink-soft"
               >
                 {emptyMessage}
               </td>
@@ -86,10 +86,10 @@ export function Table<T>({
             data.map((row, rowIndex) => (
               <tr
                 key={rowIndex}
-                className="border-b border-slate-100 transition-colors hover:bg-slate-50"
+                className="border-t border-border-brand transition-colors hover:bg-page"
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-sm tabular-nums text-slate-700">
+                  <td key={column.key} className="px-4 py-3 text-sm tabular-nums text-ink">
                     {column.render
                       ? column.render(row)
                       : String((row as Record<string, unknown>)[column.key] ?? '')}

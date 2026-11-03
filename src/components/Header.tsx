@@ -1,30 +1,131 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { X, ShoppingCart, Search } from 'lucide-react';
+import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import {
+  ChevronDown,
+  Heart,
+  LayoutDashboard,
+  LogOut,
+  MapPin,
+  Menu,
+  Package,
+  Search,
+  ShoppingCart,
+  User,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { usePanier } from '../hooks/usePanier';
+import { useFavoris } from '../hooks/useFavoris';
 import { Button } from './ui/Button';
-import { Logo } from './Logo';
+import { Logo, Wordmark } from './Logo';
+import { categoriesApi } from '../api/categories.api';
+import type { Categorie } from '../types';
 
-const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `text-sm font-medium transition-colors ${
-    isActive
-      ? 'text-primary-600'
-      : 'text-slate-600 hover:text-primary-500'
-  }`;
+const searchInputClasses =
+  'h-10 w-full rounded-lg border border-border-brand bg-page pl-10 pr-4 text-sm text-ink transition-[border-color,box-shadow,background-color] hover:border-line-strong focus:border-primary-600 focus:bg-white focus:outline-none focus:ring-[3px] focus:ring-primary-600/12';
 
-const mobileLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
-    isActive ? 'bg-primary-50 text-primary-600' : 'text-slate-600 hover:bg-slate-100'
-  }`;
+const iconButtonClasses =
+  'relative flex h-10 w-10 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-page hover:text-ink';
+
+const accountLinks = [
+  { to: '/profil', label: 'Mon profil', icon: User },
+  { to: '/mes-commandes', label: 'Mes commandes', icon: Package },
+  { to: '/adresses', label: 'Mes adresses', icon: MapPin },
+  { to: '/favoris', label: 'Mes favoris', icon: Heart },
+];
+
+/** Cache module : les catégories sont stables pendant une session. */
+let categoriesCache: Categorie[] | null = null;
+
+function CountBadge({ value }: { value: number }) {
+  if (value <= 0) return null;
+  return (
+    <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-pill bg-primary-600 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-white">
+      {value > 99 ? '99+' : value}
+    </span>
+  );
+}
 
 export function Header() {
-  const { isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { nbArticles } = usePanier();
+  const { favoris } = useFavoris();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(() => searchParams.get('search') ?? '');
+  const [categories, setCategories] = useState<Categorie[]>(() => categoriesCache ?? []);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const [hidden, setHidden] = useState(false);
+
+  // Mobile : le header se masque quand on descend et réapparaît dès qu'on remonte.
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 639px)');
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (!mobile.matches || y < 80) {
+        setHidden(false);
+      } else if (Math.abs(y - lastY) > 6) {
+        setHidden(y > lastY);
+      }
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (categoriesCache) return;
+    let cancelled = false;
+    categoriesApi
+      .getAll()
+      .then((res) => {
+        categoriesCache = res.data.data.filter((c) => c.actif);
+        if (!cancelled) setCategories(categoriesCache);
+      })
+      .catch(() => {
+        // La barre de catégories reste masquée si l'API est indisponible
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Ferme les menus à chaque changement de page (ajustement d'état pendant le rendu,
+  // recommandé par React plutôt qu'un effet)
+  const pageKey = location.pathname + location.search;
+  const [lastPageKey, setLastPageKey] = useState(pageKey);
+  if (lastPageKey !== pageKey) {
+    setLastPageKey(pageKey);
+    setMenuOpen(false);
+    setAccountOpen(false);
+  }
+
+  // Ferme le menu compte au clic extérieur / Échap
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onClick = (event: MouseEvent) => {
+      if (!accountRef.current?.contains(event.target as Node)) setAccountOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAccountOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [accountOpen]);
+
+  const activeCategorie =
+    location.pathname === '/catalogue' ? (searchParams.get('categorie') ?? '') : null;
+
+  const initials = `${user?.prenom?.[0] ?? ''}${user?.nom?.[0] ?? ''}`.toUpperCase() || 'U';
 
   const handleLogout = () => {
     logout();
@@ -35,213 +136,255 @@ export function Header() {
     event.preventDefault();
     const query = searchInput.trim();
     navigate(query ? `/catalogue?search=${encodeURIComponent(query)}` : '/catalogue');
-    setMenuOpen(false);
   };
 
+  const searchForm = (className: string) => (
+    <form onSubmit={handleSearch} className={`relative ${className}`} role="search">
+      <Search
+        size={16}
+        className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
+        aria-hidden="true"
+      />
+      <input
+        type="search"
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder="Rechercher un produit, une marque…"
+        aria-label="Rechercher un produit"
+        className={searchInputClasses}
+      />
+    </form>
+  );
+
+  const categoryLinkClass = (active: boolean) =>
+    `relative flex h-11 shrink-0 items-center whitespace-nowrap text-[13px] font-medium transition-colors after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors ${
+      active
+        ? 'text-primary-700 after:bg-primary-600'
+        : 'text-ink-soft after:bg-transparent hover:text-ink'
+    }`;
+
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex shrink-0 items-center gap-2.5">
-          <Logo size={32} className="rounded-lg" />
-          <span className="text-lg font-bold text-slate-900">BureauStore</span>
+    <>
+    <header
+      className={`sticky top-0 z-40 border-b border-border-brand bg-white/90 backdrop-blur-md transition-transform duration-300 ${
+        hidden && !menuOpen && !accountOpen ? '-translate-y-full' : 'translate-y-0'
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:gap-8 lg:px-10">
+        <Link to="/" aria-label="WorkStore, accueil" className="flex shrink-0 items-center gap-2">
+          <Logo size={30} />
+          <Wordmark size={22} />
         </Link>
 
-        <form
-          onSubmit={handleSearch}
-          className="relative hidden flex-1 md:block md:max-w-md"
-          role="search"
-        >
-          <Search
-            size={16}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Rechercher un produit…"
-            aria-label="Rechercher un produit"
-            className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 shadow-xs transition-colors placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-          />
-        </form>
+        {searchForm('hidden max-w-xl flex-1 md:block')}
 
-        <nav className="hidden items-center gap-8 lg:flex">
-          <NavLink to="/" end className={desktopLinkClass}>
-            Accueil
-          </NavLink>
-          <NavLink to="/catalogue" className={desktopLinkClass}>
-            Catalogue
-          </NavLink>
-          {isAuthenticated && (
-            <>
-              <NavLink to="/profil" className={desktopLinkClass}>
-                Mon Profil
-              </NavLink>
-              <NavLink to="/adresses" className={desktopLinkClass}>
-                Mes Adresses
-              </NavLink>
-              <NavLink to="/mes-commandes" className={desktopLinkClass}>
-                Mes commandes
-              </NavLink>
-            </>
-          )}
-          {isAdmin && (
-            <NavLink to="/admin" className={desktopLinkClass}>
-              Administration
-            </NavLink>
-          )}
-        </nav>
-
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1">
+          <Link
+            to="/favoris"
+            aria-label={`Favoris (${favoris.length})`}
+            className={`${iconButtonClasses} hidden sm:flex`}
+          >
+            <Heart size={20} strokeWidth={1.75} aria-hidden="true" />
+            <CountBadge value={favoris.length} />
+          </Link>
           <Link
             to="/panier"
             aria-label={`Panier (${nbArticles} article${nbArticles > 1 ? 's' : ''})`}
-            className="relative rounded-xl p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-primary-500"
+            className={iconButtonClasses}
           >
-            <ShoppingCart size={20} aria-hidden="true" />
-            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1 text-xs font-bold text-white">
-              {nbArticles}
-            </span>
+            <ShoppingCart size={20} strokeWidth={1.75} aria-hidden="true" />
+            <CountBadge value={nbArticles} />
           </Link>
+
+          <span className="mx-2 hidden h-6 w-px bg-border-brand sm:block" aria-hidden="true" />
+
           {isAuthenticated ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLogout}
-              className="hidden sm:inline-flex"
-            >
-              Déconnexion
-            </Button>
+            <div className="relative hidden sm:block" ref={accountRef}>
+              <button
+                type="button"
+                onClick={() => setAccountOpen((open) => !open)}
+                aria-expanded={accountOpen}
+                aria-haspopup="menu"
+                className="flex h-10 items-center gap-2 rounded-lg pl-1 pr-2 transition-colors hover:bg-page"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-xs font-semibold text-white">
+                  {initials}
+                </span>
+                <span className="hidden max-w-[120px] truncate text-sm font-medium text-ink lg:block">
+                  {user?.prenom}
+                </span>
+                <ChevronDown
+                  size={16}
+                  className={`text-ink-muted transition-transform ${accountOpen ? 'rotate-180' : ''}`}
+                  aria-hidden="true"
+                />
+              </button>
+
+              {accountOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-12 w-64 animate-modal-in overflow-hidden rounded-xl border border-border-brand bg-white shadow-aside"
+                >
+                  <div className="border-b border-border-brand px-4 py-3">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {user?.prenom} {user?.nom}
+                    </p>
+                    <p className="truncate text-xs text-ink-soft">{user?.email}</p>
+                  </div>
+                  <div className="p-1.5">
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        role="menuitem"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                      >
+                        <LayoutDashboard size={16} aria-hidden="true" />
+                        Administration
+                      </Link>
+                    )}
+                    {accountLinks.map((link) => {
+                      const Icon = link.icon;
+                      return (
+                        <Link
+                          key={link.to}
+                          to={link.to}
+                          role="menuitem"
+                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-page"
+                        >
+                          <Icon size={16} className="text-ink-muted" aria-hidden="true" />
+                          {link.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                  <div className="border-t border-border-brand p-1.5">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink transition-colors hover:bg-error-50 hover:text-error-600"
+                    >
+                      <LogOut size={16} className="text-ink-muted" aria-hidden="true" />
+                      Se déconnecter
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="hidden items-center gap-2 sm:flex">
               <Link to="/login">
-                <Button variant="secondary" size="sm">
+                <Button variant="ghost" size="sm">
                   Connexion
                 </Button>
               </Link>
               <Link to="/register">
-                <Button size="sm" className="bg-primary-500 hover:bg-primary-600">
-                  Inscription
-                </Button>
+                <Button size="sm">Créer un compte</Button>
               </Link>
             </div>
           )}
+
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
             aria-label={menuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
             aria-expanded={menuOpen}
-            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-xl transition-colors hover:bg-slate-100 lg:hidden"
+            className={`${iconButtonClasses} sm:hidden`}
           >
-            {menuOpen ? (
-              <X size={20} className="text-slate-900" />
-            ) : (
-              <>
-                <span className="h-0.5 w-5 rounded-full bg-slate-900" />
-                <span className="h-0.5 w-5 rounded-full bg-slate-900" />
-                <span className="h-0.5 w-5 rounded-full bg-slate-900" />
-              </>
-            )}
+            {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
           </button>
         </div>
       </div>
 
+      {/* Menu mobile */}
       {menuOpen && (
-        <div className="border-t border-slate-100 bg-white px-4 pb-4 lg:hidden">
-          <form onSubmit={handleSearch} className="relative mt-3 md:hidden" role="search">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Rechercher un produit…"
-              aria-label="Rechercher un produit"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 shadow-xs transition-colors placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
-            />
-          </form>
-          <nav className="flex flex-col gap-1 pt-3">
-            <NavLink to="/" end className={mobileLinkClass} onClick={() => setMenuOpen(false)}>
-              Accueil
-            </NavLink>
-            <NavLink to="/catalogue" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>
-              Catalogue
-            </NavLink>
-            {isAuthenticated && (
+        <div className="border-t border-border-brand bg-white px-4 pb-4 sm:hidden">
+          {searchForm('mt-3')}
+          <nav className="mt-3 flex flex-col gap-0.5">
+            {isAuthenticated ? (
               <>
-                <NavLink
-                  to="/profil"
-                  className={mobileLinkClass}
-                  onClick={() => setMenuOpen(false)}
+                <div className="mb-2 flex items-center gap-3 rounded-lg bg-page px-3 py-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-xs font-semibold text-white">
+                    {initials}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {user?.prenom} {user?.nom}
+                    </p>
+                    <p className="truncate text-xs text-ink-soft">{user?.email}</p>
+                  </div>
+                </div>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary-700 hover:bg-primary-50"
+                  >
+                    <LayoutDashboard size={18} aria-hidden="true" />
+                    Administration
+                  </Link>
+                )}
+                {accountLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink hover:bg-page"
+                    >
+                      <Icon size={18} className="text-ink-muted" aria-hidden="true" />
+                      {link.label}
+                    </Link>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-1 flex items-center gap-3 rounded-lg border-t border-border-brand px-3 py-2.5 text-left text-sm text-error-600 hover:bg-error-50"
                 >
-                  Mon Profil
-                </NavLink>
-                <NavLink
-                  to="/adresses"
-                  className={mobileLinkClass}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Mes Adresses
-                </NavLink>
-                <NavLink
-                  to="/mes-commandes"
-                  className={mobileLinkClass}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Mes commandes
-                </NavLink>
+                  <LogOut size={18} aria-hidden="true" />
+                  Se déconnecter
+                </button>
               </>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link to="/login">
+                  <Button variant="secondary" className="w-full">
+                    Connexion
+                  </Button>
+                </Link>
+                <Link to="/register">
+                  <Button className="w-full">Créer un compte</Button>
+                </Link>
+              </div>
             )}
-            {isAdmin && (
-              <NavLink to="/admin" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>
-                Administration
-              </NavLink>
-            )}
-            <div className="mt-2 flex flex-col gap-2 border-t border-slate-100 pt-3">
-              <Link
-                to="/panier"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
-              >
-                <ShoppingCart size={18} aria-hidden="true" />
-                Panier
-                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1 text-xs font-bold text-white">
-                  {nbArticles}
-                </span>
-              </Link>
-              {isAuthenticated ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    handleLogout();
-                    setMenuOpen(false);
-                  }}
-                >
-                  Déconnexion
-                </Button>
-              ) : (
-                <>
-                  <Link to="/login" onClick={() => setMenuOpen(false)}>
-                    <Button variant="secondary" size="sm" className="w-full">
-                      Connexion
-                    </Button>
-                  </Link>
-                  <Link to="/register" onClick={() => setMenuOpen(false)}>
-                    <Button size="sm" className="w-full bg-primary-500 hover:bg-primary-600">
-                      Inscription
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
           </nav>
         </div>
       )}
     </header>
+
+      {/* Barre catégories */}
+      {categories.length > 0 && (
+        <div className="border-b border-border-brand bg-white">
+          <nav
+            aria-label="Catégories"
+            className="mx-auto flex max-w-7xl items-stretch gap-6 overflow-x-auto px-4 sm:px-6 lg:px-10"
+            style={{ scrollbarWidth: 'none' }}
+          >
+            <NavLink to="/catalogue" className={categoryLinkClass(activeCategorie === '')}>
+              Tout le catalogue
+            </NavLink>
+            {categories.map((categorie) => (
+              <NavLink
+                key={categorie.id}
+                to={`/catalogue?categorie=${categorie.id}`}
+                className={categoryLinkClass(activeCategorie === categorie.id)}
+              >
+                {categorie.nom}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      )}
+    </>
   );
 }

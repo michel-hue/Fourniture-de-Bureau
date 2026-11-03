@@ -5,7 +5,7 @@ export function Confidentialite() {
   usePageMeta({
     title: 'Politique de confidentialité',
     description:
-      'Découvrez comment BureauStore collecte, utilise et protège vos données personnelles conformément au RGPD.',
+      'Découvrez comment WorkStore collecte, utilise et protège vos données personnelles conformément au RGPD.',
     path: '/confidentialite',
   });
 
@@ -13,9 +13,9 @@ export function Confidentialite() {
     <LegalPage title="Politique de confidentialité" updatedAt="22 septembre 2026">
       <LegalSection title="1. Responsable du traitement">
         <p>
-          BureauStore (ci-après « nous ») est responsable du traitement des données personnelles
-          collectées sur le site <strong>www.bureaustore.fr</strong>. Pour toute question relative à
-          vos données, contactez-nous à l'adresse : <strong>contact@bureaustore.fr</strong>.
+          WorkStore (ci-après « nous ») est responsable du traitement des données personnelles
+          collectées sur le site <strong>www.workstore.ci</strong>. Pour toute question relative à
+          vos données, contactez-nous à l'adresse : <strong>contact@workstore.ci</strong>.
         </p>
       </LegalSection>
 
@@ -68,7 +68,7 @@ export function Confidentialite() {
         <p>
           Conformément au RGPD, vous disposez des droits d'accès, de rectification, d'effacement,
           de limitation, d'opposition et de portabilité de vos données. Vous pouvez les exercer en
-          écrivant à <strong>contact@bureaustore.fr</strong>. Vous pouvez également introduire une
+          écrivant à <strong>contact@workstore.ci</strong>. Vous pouvez également introduire une
           réclamation auprès de la CNIL.
         </p>
       </LegalSection>

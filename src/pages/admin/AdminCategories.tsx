@@ -183,14 +183,26 @@ export function AdminCategories() {
       label: 'Nom',
       sortable: true,
       render: (categorie) => (
-        <span className="font-medium text-slate-900">{categorie.nom}</span>
+        <div className="flex items-center gap-3">
+          {categorie.image ? (
+            <img
+              src={categorie.image}
+              alt=""
+              loading="lazy"
+              className="h-10 w-10 shrink-0 rounded-lg border border-border-brand object-cover"
+            />
+          ) : (
+            <span className="h-10 w-10 shrink-0 rounded-lg bg-page" aria-hidden="true" />
+          )}
+          <span className="font-medium text-ink">{categorie.nom}</span>
+        </div>
       ),
     },
     {
       key: 'description',
       label: 'Description',
       render: (categorie) => (
-        <span className="line-clamp-2 max-w-xs text-slate-600">
+        <span className="line-clamp-2 max-w-xs text-ink-soft">
           {categorie.description || '—'}
         </span>
       ),
@@ -237,12 +249,14 @@ export function AdminCategories() {
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Catégories</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Gérez les catégories de votre catalogue.
+          <h1 className="font-display text-[26px] font-semibold leading-tight text-ink sm:text-[30px]">
+            Catégories
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            Gérez les catégories de votre catalogue ({categories.length} au total).
           </p>
         </div>
         <Button onClick={openCreate} leftIcon={<Plus size={16} />}>
@@ -250,18 +264,14 @@ export function AdminCategories() {
         </Button>
       </div>
 
-      {error && (
-        <div className="mt-4">
-          <Alert type="error" message={error} onClose={() => setError('')} />
-        </div>
-      )}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <Card className="mt-6 overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 md:flex-row md:items-center">
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-border-brand p-4 md:flex-row md:items-center">
           <div className="relative md:w-72">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
               aria-hidden="true"
             />
             <input
@@ -273,7 +283,7 @@ export function AdminCategories() {
               }}
               placeholder="Rechercher une catégorie…"
               aria-label="Rechercher une catégorie"
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 shadow-xs transition-colors placeholder:text-slate-400 focus:border-primary-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+              className="h-10 w-full rounded-lg border border-line-strong bg-white pl-10 pr-3 text-sm text-ink shadow-sm transition-[border-color,box-shadow] focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/12"
             />
           </div>
         </div>
@@ -288,7 +298,7 @@ export function AdminCategories() {
           onSort={handleSort}
         />
 
-        <div className="border-t border-slate-200 px-4 py-3">
+        <div className="border-t border-border-brand px-4 py-3">
           <Pagination
             page={currentPage}
             totalPages={totalPages}
@@ -337,12 +347,12 @@ export function AdminCategories() {
             onChange={(e) => setForm({ ...form, image: e.target.value })}
             placeholder="https://exemple.com/image.jpg"
           />
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-semibold text-ink">
             <input
               type="checkbox"
               checked={form.actif}
               onChange={(e) => setForm({ ...form, actif: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-300 text-primary-900 focus:ring-primary-500"
+              className="h-4 w-4 rounded border-line-strong accent-primary-600"
             />
             Catégorie active
           </label>
@@ -364,10 +374,10 @@ export function AdminCategories() {
           </>
         }
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-soft">
           Êtes-vous sûr de vouloir supprimer la catégorie{' '}
-          <span className="font-semibold text-slate-900">{deleteTarget?.nom}</span> ? Cette action
-          est irréversible.
+          <span className="font-semibold text-ink">{deleteTarget?.nom}</span> ? Cette action est
+          irréversible.
         </p>
       </Modal>
     </div>

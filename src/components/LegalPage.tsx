@@ -8,13 +8,15 @@ interface LegalPageProps {
 
 export function LegalPage({ title, updatedAt, children }: LegalPageProps) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <p className="text-xs font-medium uppercase tracking-wider text-primary-600">
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-10">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary-600">
         Informations légales
       </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{title}</h1>
-      <p className="mt-2 text-sm text-slate-500">Dernière mise à jour : {updatedAt}</p>
-      <div className="prose-slate mt-8 space-y-8 text-sm leading-relaxed text-slate-700">
+      <h1 className="mt-2 font-display text-[26px] font-semibold leading-tight text-ink sm:text-[32px]">
+        {title}
+      </h1>
+      <p className="mt-2 text-sm text-ink-soft">Dernière mise à jour : {updatedAt}</p>
+      <div className="mt-8 space-y-8 rounded-xl border border-border-brand bg-white p-5 text-sm leading-relaxed text-ink-soft shadow-card sm:p-7">
         {children}
       </div>
     </div>
@@ -24,7 +26,7 @@ export function LegalPage({ title, updatedAt, children }: LegalPageProps) {
 export function LegalSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+      <h2 className="font-display text-[18px] font-semibold text-ink">{title}</h2>
       <div className="mt-3 space-y-3">{children}</div>
     </section>
   );

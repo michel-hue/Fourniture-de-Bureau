@@ -10,6 +10,10 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { calculerFraisLivraison, formatPrix, prixLigne } from '../utils/panier';
 
+/** Stepper quantité (spec §2 « Stepper qty ») : 44×44, bordure 1px `line-strong`, radius 8. */
+const stepperButtonClasses =
+  'flex h-11 w-11 items-center justify-center rounded-lg text-ink transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40';
+
 export function Panier() {
   usePageMeta({ title: 'Panier', path: '/panier', noIndex: true });
 
@@ -58,15 +62,11 @@ export function Panier() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <Skeleton className="h-9 w-48" />
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton key={index} className="h-28 w-full rounded-xl" />
-            ))}
-          </div>
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
+        <Skeleton className="h-10 w-56" />
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
           <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-80 w-full rounded-xl" />
         </div>
       </div>
     );
@@ -74,8 +74,10 @@ export function Panier() {
 
   if (!panier || panier.details.length === 0) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">Mon panier</h1>
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
+        <h1 className="font-display text-[26px] font-semibold leading-tight text-ink sm:text-[32px]">
+          Mon panier
+        </h1>
         <Card className="mt-8">
           <EmptyState
             icon={ShoppingCart}
@@ -93,35 +95,47 @@ export function Panier() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
+      {/* ── Titre ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">Mon panier</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-display text-[26px] font-semibold leading-tight text-ink sm:text-[32px]">
+            Mon panier
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
             {nbArticles} article{nbArticles > 1 ? 's' : ''} dans votre panier
           </p>
         </div>
-        <Button
-          variant="ghost"
+
+        <button
+          type="button"
           onClick={handleClear}
-          loading={clearing}
-          leftIcon={<Trash2 size={16} />}
-          className="text-error-600 hover:bg-error-50 hover:text-error-700"
+          disabled={clearing}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          <Trash2 size={15} aria-hidden="true" />
           Vider le panier
-        </Button>
+        </button>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
-        {/* Liste des articles */}
-        <div className="space-y-4">
-          {panier.details.map((detail) => {
+      <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_380px] lg:gap-8">
+        {/* ── Lignes du panier (spec §2 « Ligne panier ») ─────────────────── */}
+        <Card className="overflow-hidden">
+          {panier.details.map((detail, index) => {
             const produit = detail.produit;
             const sousTotal = prixLigne(detail.prix_unitaire, detail.quantite);
             return (
-              <Card key={detail.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
-                {/* Image */}
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100 text-slate-300">
+              <div
+                key={detail.id}
+                className={`flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5 ${
+                  index > 0 ? 'border-t border-border-brand' : ''
+                }`}
+              >
+                {/* Vignette 64×64 */}
+                <Link
+                  to={`/produits/${detail.produit_id}`}
+                  className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface text-primary-300"
+                >
                   {produit?.images?.[0] ? (
                     <img
                       src={produit.images[0].url}
@@ -130,35 +144,38 @@ export function Panier() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <Package size={28} aria-hidden="true" />
+                    <Package size={24} aria-hidden="true" />
                   )}
-                </div>
+                </Link>
 
-                {/* Infos produit */}
+                {/* Nom + méta */}
                 <div className="min-w-0 flex-1">
                   <Link
                     to={`/produits/${detail.produit_id}`}
-                    className="font-semibold text-slate-900 transition-colors hover:text-primary-900"
+                    className="font-semibold text-ink transition-colors hover:text-primary-700"
                   >
                     {produit?.nom ?? 'Produit'}
                   </Link>
-                  <p className="mt-0.5 text-sm text-slate-500">
-                    {formatPrix(detail.prix_unitaire)} / unité
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] leading-[18px] text-ink-soft">
+                    <span>{formatPrix(detail.prix_unitaire)} / unité</span>
+                    {produit?.reference && (
+                      <span className="font-mono text-xs text-ink-soft">{produit.reference}</span>
+                    )}
                   </p>
                 </div>
 
-                {/* Stepper quantité */}
-                <div className="flex items-center rounded-md border border-slate-300 bg-white">
+                {/* Stepper */}
+                <div className="flex items-center rounded-lg border border-line-strong bg-white">
                   <button
                     type="button"
                     onClick={() => handleUpdateQuantite(detail.id, detail.quantite - 1)}
                     disabled={updatingId === detail.id || detail.quantite <= 1}
                     aria-label="Diminuer la quantité"
-                    className="flex h-10 w-10 items-center justify-center text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className={stepperButtonClasses}
                   >
-                    <Minus size={14} aria-hidden="true" />
+                    <Minus size={16} aria-hidden="true" />
                   </button>
-                  <span className="w-10 text-center text-sm font-semibold tabular-nums text-slate-900">
+                  <span className="w-11 text-center font-display text-lg font-semibold tabular-nums text-ink">
                     {detail.quantite}
                   </span>
                   <button
@@ -166,74 +183,82 @@ export function Panier() {
                     onClick={() => handleUpdateQuantite(detail.id, detail.quantite + 1)}
                     disabled={updatingId === detail.id || detail.quantite >= 99}
                     aria-label="Augmenter la quantité"
-                    className="flex h-10 w-10 items-center justify-center text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className={stepperButtonClasses}
                   >
-                    <Plus size={14} aria-hidden="true" />
+                    <Plus size={16} aria-hidden="true" />
                   </button>
                 </div>
 
-                {/* Sous-total + suppression */}
-                <div className="flex items-center justify-between gap-4 sm:w-32 sm:flex-col sm:items-end">
-                  <p className="font-bold tabular-nums text-slate-900">{formatPrix(sousTotal)}</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                {/* Prix + suppression */}
+                <div className="flex items-center justify-between gap-3 sm:w-[110px] sm:flex-col sm:items-end">
+                  <p className="font-display text-xl font-semibold tabular-nums text-ink">
+                    {formatPrix(sousTotal)}
+                  </p>
+                  <button
+                    type="button"
                     onClick={() => handleRemove(detail.id)}
-                    loading={removingId === detail.id}
+                    disabled={removingId === detail.id}
                     aria-label={`Supprimer ${produit?.nom ?? "l'article"} du panier`}
-                    className="text-error-600 hover:bg-error-50 hover:text-error-700"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-error-50 hover:text-error-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Trash2 size={16} />
-                  </Button>
+                    <Trash2 size={16} aria-hidden="true" />
+                  </button>
                 </div>
-              </Card>
+              </div>
             );
           })}
-        </div>
+        </Card>
 
-        {/* Récapitulatif sticky */}
-        <div className="lg:sticky lg:top-24 lg:h-fit">
-          <Card>
-            <div className="border-b border-slate-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-slate-900">Récapitulatif</h2>
+        {/* ── Aside récap (spec §2 « Card » variant aside) ─────────────────── */}
+        <div className="lg:sticky lg:top-24">
+          <Card className="shadow-aside">
+            <div className="border-b border-border-brand px-6 py-5">
+              <h2 className="font-display text-[22px] font-semibold leading-tight text-ink">
+                Récapitulatif
+              </h2>
             </div>
-            <div className="space-y-3 p-6 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Sous-total</span>
-                <span className="font-semibold tabular-nums text-slate-900">
+
+            <div className="space-y-4 p-6">
+              {/* Lignes `.sum` */}
+              <div className="flex items-center justify-between gap-4 text-[15px]">
+                <span className="text-ink-soft">Sous-total</span>
+                <span className="font-display font-semibold tabular-nums text-ink">
                   {formatPrix(total)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Frais de livraison</span>
+              <div className="flex items-center justify-between gap-4 text-[15px]">
+                <span className="text-ink-soft">Livraison à Abidjan</span>
                 {fraisLivraison === 0 ? (
-                  <Badge variant="success">Offerts</Badge>
+                  <Badge variant="success">Offerte</Badge>
                 ) : (
-                  <span className="font-semibold tabular-nums text-slate-900">
+                  <span className="font-display font-semibold tabular-nums text-ink">
                     {formatPrix(fraisLivraison)}
                   </span>
                 )}
               </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-3">
-                <span className="font-semibold text-slate-900">Total</span>
-                <span className="text-xl font-bold tabular-nums text-slate-900">
+
+              {/* Total */}
+              <div className="flex items-center justify-between gap-4 border-t border-border-brand pt-4">
+                <span className="text-[18px] font-semibold text-ink">Total</span>
+                <span className="font-display text-[28px] font-semibold tabular-nums text-ink">
                   {formatPrix(totalAvecLivraison)}
                 </span>
               </div>
             </div>
-            <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
+
+            <div className="space-y-3 rounded-b-xl bg-page px-6 py-5">
               <Button
                 variant="accent"
                 size="lg"
                 className="w-full"
                 onClick={() => navigate('/checkout')}
-                rightIcon={<ArrowRight size={16} />}
+                rightIcon={<ArrowRight size={18} aria-hidden="true" />}
               >
                 Passer la commande
               </Button>
               <Link
                 to="/catalogue"
-                className="mt-3 flex items-center justify-center gap-1 text-sm font-medium text-primary-700 transition-colors hover:text-primary-900"
+                className="flex items-center justify-center gap-1 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
               >
                 <ArrowLeft size={14} aria-hidden="true" /> Continuer mes achats
               </Link>

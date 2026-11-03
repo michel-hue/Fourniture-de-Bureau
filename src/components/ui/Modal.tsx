@@ -67,7 +67,7 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
-        className="absolute inset-0 animate-fade-in bg-slate-900/50 backdrop-blur-sm"
+        className="absolute inset-0 animate-fade-in bg-ink/40 backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -76,22 +76,22 @@ export function Modal({ isOpen, onClose, title, children, footer }: ModalProps) 
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative z-10 mx-4 max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        className="relative z-10 mx-4 max-h-[90vh] w-full max-w-lg animate-modal-in overflow-y-auto rounded-2xl border border-border-brand bg-white shadow-aside"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-border-brand px-6 py-4">
+          <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fermer"
-            className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1 text-ink-soft transition-colors hover:bg-page hover:text-ink"
           >
             <X size={20} />
           </button>
         </div>
         <div className="px-6 py-5">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <div className="flex justify-end gap-2 rounded-b-2xl border-t border-border-brand bg-page px-6 py-4">
             {footer}
           </div>
         )}

@@ -3,7 +3,7 @@ import type { AxiosError } from 'axios';
 
 // L'API est hébergée séparément du frontend (api-project, NestJS).
 // En dev : proxy Vite /api -> http://localhost:3000 (voir vite.config.ts)
-// En prod : VITE_API_URL pointe vers le domaine de l'API (ex: https://api.bureaustore.fr)
+// En prod : VITE_API_URL pointe vers le domaine de l'API (ex: https://api.workstore.ci)
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 const api = axios.create({

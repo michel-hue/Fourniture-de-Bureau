@@ -37,7 +37,7 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
 
   return (
     <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-      <p className="text-sm text-slate-600">
+      <p className="text-sm text-ink-soft">
         {total !== undefined
           ? `Page ${page} sur ${totalPages} — ${total} résultat${total > 1 ? 's' : ''}`
           : `Page ${page} sur ${totalPages}`}
@@ -48,7 +48,7 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           aria-label="Page précédente"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-brand bg-white text-ink-soft transition-colors hover:border-primary-600 hover:text-primary-600 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronLeft size={16} aria-hidden="true" />
         </button>
@@ -56,7 +56,7 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
           item === 'ellipsis' ? (
             <span
               key={`ellipsis-${index}`}
-              className="flex h-9 w-9 items-center justify-center text-sm text-slate-400"
+              className="flex h-9 w-9 items-center justify-center text-sm text-ink-soft"
               aria-hidden="true"
             >
               …
@@ -67,10 +67,10 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
               type="button"
               onClick={() => onPageChange(item)}
               aria-current={item === page ? 'page' : undefined}
-              className={`h-9 w-9 rounded-md border text-sm transition-colors ${
+              className={`h-9 w-9 rounded-lg border font-display text-sm font-semibold transition-colors ${
                 item === page
-                  ? 'border-primary-900 bg-primary-900 text-white'
-                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'border-primary-600 bg-primary-600 text-white'
+                  : 'border-border-brand bg-white text-ink-soft hover:border-primary-600 hover:text-primary-600'
               }`}
             >
               {item}
@@ -82,7 +82,7 @@ export function Pagination({ page, totalPages, total, onPageChange }: Pagination
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           aria-label="Page suivante"
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border-brand bg-white text-ink-soft transition-colors hover:border-primary-600 hover:text-primary-600 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ChevronRight size={16} aria-hidden="true" />
         </button>

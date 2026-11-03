@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { PanierProvider } from './contexts/PanierContext';
+import { FavorisProvider } from './contexts/FavorisContext';
 import { ToastProvider } from './components/ui/Toast';
 import { MainLayout } from './layouts/MainLayout';
 import { AdminLayout } from './layouts/AdminLayout';
@@ -20,35 +21,52 @@ import { MesCommandes } from './pages/MesCommandes';
 import { Confidentialite } from './pages/Confidentialite';
 import { Cgu } from './pages/Cgu';
 import { NotFound } from './pages/NotFound';
+import { Favoris } from './pages/Favoris';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminProduits } from './pages/admin/AdminProduits';
 import { AdminCategories } from './pages/admin/AdminCategories';
 import { AdminStocks } from './pages/admin/AdminStocks';
 import { AdminCommandes } from './pages/admin/AdminCommandes';
+import { AdminUtilisateurs } from './pages/admin/AdminUtilisateurs';
+import { AccountLayout } from './layouts/AccountLayout';
+import { FocusLayout } from './layouts/FocusLayout';
+import { MotDePasseOublie } from './pages/MotDePasseOublie';
 
 function App() {
   return (
     <AuthProvider>
       <ToastProvider>
         <PanierProvider>
-          <BrowserRouter>
+          <FavorisProvider>
+            <BrowserRouter>
             <Routes>
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/catalogue" element={<Catalogue />} />
                 <Route path="/produits/:id" element={<ProduitDetail />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/panier" element={<Panier />} />
                 <Route path="/confidentialite" element={<Confidentialite />} />
                 <Route path="/cgu" element={<Cgu />} />
 
+                <Route element={<AccountLayout />}>
+                  <Route path="/favoris" element={<Favoris />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/profil" element={<Profile />} />
+                    <Route path="/adresses" element={<Addresses />} />
+                    <Route path="/mes-commandes" element={<MesCommandes />} />
+                  </Route>
+                </Route>
+
+              </Route>
+
+              {/* Pages « focus » : header minimal, sans navigation boutique */}
+              <Route element={<FocusLayout />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/mot-de-passe-oublie" element={<MotDePasseOublie />} />
                 <Route element={<ProtectedRoute />}>
-                  <Route path="/profil" element={<Profile />} />
-                  <Route path="/adresses" element={<Addresses />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/commande-confirmation" element={<CommandeConfirmation />} />
-                  <Route path="/mes-commandes" element={<MesCommandes />} />
                 </Route>
               </Route>
 
@@ -59,8 +77,7 @@ function App() {
                   <Route path="/admin/categories" element={<AdminCategories />} />
                   <Route path="/admin/stocks" element={<AdminStocks />} />
                   <Route path="/admin/commandes" element={<AdminCommandes />} />
-                  <Route path="/admin/utilisateurs" element={<AdminDashboard />} />
-                  <Route path="/admin/coupons" element={<AdminDashboard />} />
+                  <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />
                 </Route>
               </Route>
 
@@ -68,6 +85,7 @@ function App() {
             </Routes>
             <CookieBanner />
           </BrowserRouter>
+        </FavorisProvider>
         </PanierProvider>
       </ToastProvider>
     </AuthProvider>

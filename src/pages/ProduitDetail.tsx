@@ -13,21 +13,19 @@ import {
   Package,
   Tag,
   Barcode,
-  MessageSquare,
 } from 'lucide-react';
-import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 import { Badge } from '../components/ui/Badge';
-import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
+import { ProductCard } from '../components/ProductCard';
+import { FavoriButton } from '../components/FavoriButton';
 import { produitsApi } from '../api/produits.api';
-import { stocksApi } from '../api/stocks.api';
 import { useAuth } from '../hooks/useAuth';
 import { usePanier } from '../hooks/usePanier';
 import { usePageMeta } from '../hooks/usePageMeta';
 import { formatPrix, calculerRemise } from '../utils/panier';
-import type { Produit } from '../types';
+import type { Produit, ProductStock } from '../types';
 
 export function ProduitDetail() {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +35,7 @@ export function ProduitDetail() {
   const location = useLocation();
   const [produit, setProduit] = useState<Produit | null>(null);
   const [similaires, setSimilaires] = useState<Produit[]>([]);
-  const [stockInfo, setStockInfo] = useState<{ quantite: number; seuil: number } | null>(null);
+  const [stock, setStock] = useState<ProductStock | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageIndex, setImageIndex] = useState(0);
@@ -63,20 +61,20 @@ export function ProduitDetail() {
       setQuantite(1);
       // Réinitialise les données dépendantes du produit précédent : sans cela, un
       // échec du chargement ferait afficher le stock d'un autre produit.
-      setStockInfo(null);
+      setStock(null);
       setSimilaires([]);
       try {
         const res = await produitsApi.getOne(id);
         if (cancelled) return;
         setProduit(res.data.data);
 
-        // `GET /stocks/produit/:produitId` est public : la page reste complète
-        // pour un visiteur anonyme (badge « En stock » / « Rupture » et
-        // désactivation du bouton en découlent). En cas d'échec réseau on laisse
-        // `stockInfo` à `null` — ni badge, ni blocage de l'achat — plutôt que
-        // d'affirmer un état de stock faux.
+        // `GET /produits/:id/stock` est PUBLIC : la page reste complète pour
+        // un visiteur anonyme (pill « En stock » / « Stock faible : N » /
+        // « Rupture » et désactivation du bouton en découlent). En cas
+        // d'échec réseau on laisse `stock` à `null` — ni pill, ni blocage de
+        // l'achat — plutôt que d'affirmer un état de stock faux.
         const [stockResult, similairesResult] = await Promise.allSettled([
-          stocksApi.getByProduit(id),
+          produitsApi.getStock(id),
           produitsApi.getAll({
             limit: 4,
             categorie_id: res.data.data.categorie_id,
@@ -85,10 +83,7 @@ export function ProduitDetail() {
         if (cancelled) return;
 
         if (stockResult.status === 'fulfilled') {
-          setStockInfo({
-            quantite: stockResult.value.data.data.quantite,
-            seuil: stockResult.value.data.data.seuil_alerte,
-          });
+          setStock(stockResult.value.data.data);
         }
 
         if (similairesResult.status === 'fulfilled') {
@@ -114,16 +109,15 @@ export function ProduitDetail() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
         <Skeleton className="h-4 w-64" />
-        <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
           <Skeleton className="aspect-square rounded-xl" />
           <div className="space-y-4">
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-9 w-2/3" />
             <Skeleton className="h-4 w-1/3" />
             <Skeleton className="h-10 w-1/4" />
-            <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-12 w-full" />
           </div>
@@ -134,13 +128,13 @@ export function ProduitDetail() {
 
   if (error || !produit) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10">
         <Alert type="error" message={error || 'Produit introuvable.'} />
         <Link
           to="/catalogue"
-          className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary-700 transition-colors hover:text-primary-900"
+          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary-600 transition-colors hover:text-primary-700"
         >
-          <ChevronRight size={16} className="rotate-180" /> Retour au catalogue
+          <ChevronRight size={16} className="rotate-180" aria-hidden="true" /> Retour au catalogue
         </Link>
       </div>
     );
@@ -150,12 +144,22 @@ export function ProduitDetail() {
   const imagePrincipale = images[imageIndex] ?? produit.images?.find((i) => i.is_principale) ?? produit.images?.[0];
   const remise = calculerRemise(produit.prix, produit.ancien_prix);
 
+  /**
+   * État du stock affiché (spec §1.1 « palette statut ») :
+   * - `ok`     → « En stock » (fond #DDF2E4 / texte #187A42)
+   * - `faible` → « Stock faible : N » (fond #FFB800 / texte navy)
+   * - `rupture`→ « Rupture » (fond #FBE3E4 / texte #B3262F)
+   *
+   * `null` = stock inconnu (échec de l'appel) → aucune pill, achat autorisé.
+   * Le seuil « faible » est celui du produit (`seuil_alerte` renvoyé par
+   * l'API), jamais une constante côté front.
+   */
   const stockStatus =
-    stockInfo === null
+    stock === null
       ? null
-      : stockInfo.quantite === 0
+      : stock.quantite <= 0
         ? 'rupture'
-        : stockInfo.quantite <= stockInfo.seuil
+        : stock.quantite <= stock.seuil_alerte
           ? 'faible'
           : 'ok';
 
@@ -205,41 +209,44 @@ export function ProduitDetail() {
   const ruptureStock = stockStatus === 'rupture';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 pb-24 pt-8 sm:px-6 sm:pb-16 lg:px-10">
       {/* Fil d'Ariane */}
-      <nav aria-label="Fil d'Ariane" className="flex flex-wrap items-center gap-1.5 text-sm text-slate-500">
-        <Link to="/" className="transition-colors hover:text-primary-900">
+      <nav
+        aria-label="Fil d'Ariane"
+        className="flex flex-wrap items-center gap-1.5 text-[13px] text-ink-soft"
+      >
+        <Link to="/" className="transition-colors hover:text-primary-600">
           Accueil
         </Link>
-        <ChevronRight size={14} className="text-slate-400" aria-hidden="true" />
-        <Link to="/catalogue" className="transition-colors hover:text-primary-900">
+        <ChevronRight size={14} className="text-ink-soft/60" aria-hidden="true" />
+        <Link to="/catalogue" className="transition-colors hover:text-primary-600">
           Catalogue
         </Link>
         {produit.categorie && (
           <>
-            <ChevronRight size={14} className="text-slate-400" aria-hidden="true" />
-            <Link to="/catalogue" className="transition-colors hover:text-primary-900">
+            <ChevronRight size={14} className="text-ink-soft/60" aria-hidden="true" />
+            <Link to="/catalogue" className="transition-colors hover:text-primary-600">
               {produit.categorie.nom}
             </Link>
           </>
         )}
-        <ChevronRight size={14} className="text-slate-400" aria-hidden="true" />
-        <span className="font-medium text-slate-700">{produit.nom}</span>
+        <ChevronRight size={14} className="text-ink-soft/60" aria-hidden="true" />
+        <span className="font-semibold text-ink">{produit.nom}</span>
       </nav>
 
-      <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-2">
-        {/* Galerie */}
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
+        {/* ── Galerie ─────────────────────────────────────────────────────── */}
         <div>
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-border-brand bg-white shadow-card">
             {imagePrincipale ? (
               <img
                 src={imagePrincipale.url}
                 alt={produit.nom}
                 fetchPriority="high"
-                className="aspect-square w-full object-cover"
+                className="aspect-square w-full bg-surface object-cover"
               />
             ) : (
-              <div className="flex aspect-square items-center justify-center bg-slate-100 text-slate-300">
+              <div className="flex aspect-square items-center justify-center bg-surface text-primary-300">
                 <Package size={64} aria-hidden="true" />
               </div>
             )}
@@ -252,10 +259,10 @@ export function ProduitDetail() {
                   type="button"
                   onClick={() => setImageIndex(index)}
                   aria-label={`Voir l'image ${index + 1}`}
-                  className={`h-20 w-20 overflow-hidden rounded-lg border-2 transition-colors ${
+                  className={`h-20 w-20 overflow-hidden rounded-lg border transition-colors ${
                     index === imageIndex
-                      ? 'border-accent-500'
-                      : 'border-slate-200 hover:border-slate-300'
+                      ? 'border-primary-600'
+                      : 'border-border-brand hover:border-primary-300'
                   }`}
                 >
                   <img src={image.url} alt="" className="h-full w-full object-cover" />
@@ -265,29 +272,29 @@ export function ProduitDetail() {
           )}
         </div>
 
-        {/* Infos */}
+        {/* ── Informations ────────────────────────────────────────────────── */}
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-accent-700">
-            {produit.categorie?.nom ?? 'Fournitures'}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+            {produit.marque || produit.categorie?.nom || 'WorkStore'}
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+          <h1 className="mt-2 font-display text-[26px] font-semibold leading-tight text-ink sm:text-[32px]">
             {produit.nom}
           </h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1">
               <Star
-                size={18}
+                size={16}
                 className={
-                  produit.note_moyenne > 0 ? 'fill-accent-500 text-accent-500' : 'text-slate-300'
+                  produit.note_moyenne > 0 ? 'fill-accent-500 text-accent-500' : 'text-ink-soft/40'
                 }
                 aria-hidden="true"
               />
-              <span className="font-semibold tabular-nums text-slate-800">
+              <span className="font-display text-sm font-semibold tabular-nums text-ink">
                 {produit.note_moyenne > 0 ? produit.note_moyenne.toFixed(1) : 'Nouveau'}
               </span>
             </div>
-            <span className="text-sm text-slate-500">
+            <span className="text-[13px] text-ink-soft">
               {produit.nombre_avis > 0
                 ? `${produit.nombre_avis} avis`
                 : 'Aucun avis pour le moment'}
@@ -297,70 +304,73 @@ export function ProduitDetail() {
                 En stock
               </Badge>
             )}
-            {stockStatus === 'faible' && (
+            {stockStatus === 'faible' && stock && (
               <Badge variant="warning" dot>
-                Stock faible
+                Stock faible : {stock.quantite}
               </Badge>
             )}
             {stockStatus === 'rupture' && (
               <Badge variant="error" dot>
-                Rupture de stock
+                Rupture
               </Badge>
             )}
           </div>
 
-          <div className="mt-4 flex items-baseline gap-3">
-            <p className="text-3xl font-bold tabular-nums text-slate-900">
+          <div className="mt-5 flex flex-wrap items-baseline gap-3">
+            <p className="font-display text-[28px] font-semibold leading-9 tabular-nums text-ink sm:text-[32px]">
               {formatPrix(produit.prix)}
             </p>
             {remise !== null && (
               <>
-                <p className="text-lg text-slate-400 line-through">
+                <p className="text-[15px] text-ink-soft line-through">
                   {formatPrix(produit.ancien_prix)}
                 </p>
-                <Badge className="bg-accent-500 text-white">-{remise}%</Badge>
+                <Badge variant="accent">-{remise} %</Badge>
               </>
             )}
           </div>
 
           {produit.description && (
-            <p className="mt-4 leading-relaxed text-slate-700">{produit.description}</p>
+            <p className="mt-4 text-[15px] leading-6 text-ink-soft">{produit.description}</p>
           )}
 
-          <dl className="mt-6 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+          <dl className="mt-6 space-y-2.5 border-y border-border-brand py-4 text-sm">
             {produit.marque && (
               <div className="flex items-center gap-2">
-                <Tag size={16} className="shrink-0 text-primary-700" aria-hidden="true" />
-                <dt className="text-slate-500">Marque :</dt>
-                <dd className="font-medium text-slate-800">{produit.marque}</dd>
+                <Tag size={16} className="shrink-0 text-primary-600" aria-hidden="true" />
+                <dt className="text-ink-soft">Marque :</dt>
+                <dd className="font-semibold text-ink">{produit.marque}</dd>
               </div>
             )}
             {produit.reference && (
               <div className="flex items-center gap-2">
-                <Barcode size={16} className="shrink-0 text-primary-700" aria-hidden="true" />
-                <dt className="text-slate-500">Référence :</dt>
-                <dd className="font-medium text-slate-800">{produit.reference}</dd>
+                <Barcode size={16} className="shrink-0 text-primary-600" aria-hidden="true" />
+                <dt className="text-ink-soft">Référence :</dt>
+                <dd className="font-mono text-[13px] text-ink">{produit.reference}</dd>
               </div>
             )}
             <div className="flex items-center gap-2">
-              <Package size={16} className="shrink-0 text-primary-700" aria-hidden="true" />
-              <dt className="text-slate-500">Catégorie :</dt>
-              <dd className="font-medium text-slate-800">{produit.categorie?.nom ?? 'Non classé'}</dd>
+              <Package size={16} className="shrink-0 text-primary-600" aria-hidden="true" />
+              <dt className="text-ink-soft">Catégorie :</dt>
+              <dd className="font-semibold text-ink">
+                {produit.categorie?.nom ?? 'Non classé'}
+              </dd>
             </div>
           </dl>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <div className="flex items-center rounded-md border border-slate-300 bg-white">
+          {/* Stepper 44×44 + CTA */}
+          <div className="mt-6 flex flex-wrap items-stretch gap-3">
+            <div className="flex items-center rounded-lg border border-line-strong bg-white">
               <button
                 type="button"
                 onClick={() => setQuantite((q) => Math.max(1, q - 1))}
                 disabled={ruptureStock}
                 aria-label="Diminuer la quantité"
-                className="flex h-12 w-11 items-center justify-center text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-12 w-11 items-center justify-center text-ink-soft transition-colors hover:bg-page hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Minus size={16} aria-hidden="true" />
               </button>
-              <span className="w-12 text-center text-sm font-semibold tabular-nums text-slate-900">
+              <span className="w-10 text-center text-base font-medium tabular-nums text-ink">
                 {quantite}
               </span>
               <button
@@ -368,167 +378,73 @@ export function ProduitDetail() {
                 onClick={() => setQuantite((q) => Math.min(99, q + 1))}
                 disabled={ruptureStock || quantite >= 99}
                 aria-label="Augmenter la quantité"
-                className="flex h-12 w-11 items-center justify-center text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-12 w-11 items-center justify-center text-ink-soft transition-colors hover:bg-page hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus size={16} aria-hidden="true" />
               </button>
             </div>
-            <Button
-              variant="accent"
-              size="lg"
-              className="flex-1"
-              onClick={handleAddToCart}
-              loading={adding}
-              disabled={ruptureStock}
-              leftIcon={<ShoppingCart size={18} />}
-            >
-              Ajouter au panier
-            </Button>
+
             <Button
               variant="primary"
               size="lg"
-              className="flex-1"
+              className="min-w-[200px] flex-1"
+              onClick={handleAddToCart}
+              loading={adding}
+              disabled={ruptureStock}
+              leftIcon={<ShoppingCart size={18} aria-hidden="true" />}
+            >
+              Ajouter au panier
+            </Button>
+            <FavoriButton produit={produit} size="md" className="!h-12 !w-12 !rounded-lg" />
+            <Button
+              variant="secondary"
+              size="lg"
+              className="w-full"
               onClick={handleBuyNow}
               loading={adding}
               disabled={ruptureStock}
-              leftIcon={<Zap size={18} />}
+              leftIcon={<Zap size={18} aria-hidden="true" />}
             >
               Acheter maintenant
             </Button>
           </div>
           {ruptureStock && (
-            <p className="mt-2 text-xs text-error-600">
+            <p className="mt-2 text-[13px] text-error-700">
               Ce produit est en rupture de stock et ne peut pas être commandé.
             </p>
           )}
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-              <Truck size={18} className="shrink-0 text-primary-700" aria-hidden="true" />
-              Livraison 24/48h
-            </div>
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-              <RotateCcw size={18} className="shrink-0 text-primary-700" aria-hidden="true" />
-              Retours 30 jours
-            </div>
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-              <ShieldCheck size={18} className="shrink-0 text-primary-700" aria-hidden="true" />
-              Paiement sécurisé
-            </div>
+            {[
+              { icon: Truck, label: 'Livraison 48 h' },
+              { icon: RotateCcw, label: 'Retours 30 jours' },
+              { icon: ShieldCheck, label: 'Paiement sécurisé' },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 rounded-lg border border-border-brand bg-white px-3 py-2.5 text-[13px] font-medium text-ink"
+                >
+                  <Icon size={17} className="shrink-0 text-primary-600" aria-hidden="true" />
+                  {item.label}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Avis clients */}
-      <section className="mt-16">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Avis clients</h2>
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
-          <Card className="p-6 text-center">
-            <p className="text-4xl font-bold tabular-nums text-slate-900">
-              {produit.note_moyenne > 0 ? produit.note_moyenne.toFixed(1) : '—'}
-            </p>
-            <div className="mt-2 flex items-center justify-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={18}
-                  className={
-                    star <= Math.round(produit.note_moyenne)
-                      ? 'fill-accent-500 text-accent-500'
-                      : 'text-slate-300'
-                  }
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-            <p className="mt-2 text-sm text-slate-500">
-              {produit.nombre_avis} avis vérifiés
-            </p>
-          </Card>
-          <Card className="p-6">
-            {produit.nombre_avis > 0 ? (
-              <EmptyState
-                icon={MessageSquare}
-                title="Les avis détaillés arrivent bientôt"
-                description="La liste complète des avis clients sera disponible dans une prochaine version."
-              />
-            ) : (
-              <EmptyState
-                icon={MessageSquare}
-                title="Aucun avis pour le moment"
-                description="Soyez le premier à donner votre avis sur ce produit."
-              />
-            )}
-          </Card>
-        </div>
-      </section>
-
-      {/* Produits similaires */}
+      {/* ── Produits similaires ───────────────────────────────────────────── */}
       {similaires.length > 0 && (
-        <section className="mt-16">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <section className="mt-14">
+          <h2 className="font-display text-[22px] font-semibold leading-tight text-ink sm:text-[28px]">
             Produits similaires
           </h2>
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {similaires.map((produitSimilaire) => {
-              const remiseSimilaire = calculerRemise(
-                produitSimilaire.prix,
-                produitSimilaire.ancien_prix,
-              );
-              return (
-                <Link
-                  key={produitSimilaire.id}
-                  to={`/produits/${produitSimilaire.id}`}
-                  className="group"
-                >
-                  <Card variant="hover" className="flex h-full flex-col overflow-hidden">
-                    <div className="relative aspect-[4/3] bg-slate-100">
-                      {produitSimilaire.images?.[0] ? (
-                        <img
-                          src={produitSimilaire.images[0].url}
-                          alt={produitSimilaire.nom}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-slate-300">
-                          <Package size={32} aria-hidden="true" />
-                        </div>
-                      )}
-                      {remiseSimilaire !== null && (
-                        <Badge className="absolute left-2 top-2 bg-accent-500 text-white">
-                          -{remiseSimilaire}%
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex flex-1 flex-col p-4">
-                      <h3 className="line-clamp-2 font-semibold text-slate-900 transition-colors group-hover:text-primary-900">
-                        {produitSimilaire.nom}
-                      </h3>
-                      <div className="mt-2 flex items-center gap-1 text-sm">
-                        <Star
-                          size={14}
-                          className={
-                            produitSimilaire.note_moyenne > 0
-                              ? 'fill-accent-500 text-accent-500'
-                              : 'text-slate-300'
-                          }
-                          aria-hidden="true"
-                        />
-                        <span className="font-medium text-slate-700">
-                          {produitSimilaire.note_moyenne > 0
-                            ? produitSimilaire.note_moyenne.toFixed(1)
-                            : 'Nouveau'}
-                        </span>
-                      </div>
-                      <p className="mt-auto pt-3 text-lg font-bold tabular-nums text-slate-900">
-                        {formatPrix(produitSimilaire.prix)}
-                      </p>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
+            {similaires.map((produitSimilaire) => (
+              <ProductCard key={produitSimilaire.id} produit={produitSimilaire} />
+            ))}
           </div>
         </section>
       )}

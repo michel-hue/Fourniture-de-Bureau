@@ -5,8 +5,10 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
+import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { Table, type TableColumn } from '../../components/ui/Table';
+import { Pagination } from '../../components/ui/Pagination';
 import { useToast } from '../../hooks/useToast';
 import { usePageMeta } from '../../hooks/usePageMeta';
 import { formatPrix, toNumber } from '../../utils/panier';
@@ -31,11 +33,12 @@ const statutsDisponibles = [
   'ANNULEE',
 ] as const;
 
+/** Palette statut de la spec §1.1 : payée/livrée = vert, préparation = teal, expédiée = neutre. */
 const statutConfig: Record<string, { variant: StatutVariant; label: string }> = {
   EN_ATTENTE: { variant: 'warning', label: 'En attente' },
-  PAYEE: { variant: 'info', label: 'Payée' },
+  PAYEE: { variant: 'success', label: 'Payée' },
   EN_PREPARATION: { variant: 'info', label: 'En préparation' },
-  EXPEDIEE: { variant: 'primary', label: 'Expédiée' },
+  EXPEDIEE: { variant: 'neutral', label: 'Expédiée' },
   LIVREE: { variant: 'success', label: 'Livrée' },
   ANNULEE: { variant: 'error', label: 'Annulée' },
 };
@@ -45,13 +48,13 @@ function getStatutConfig(statut: string): { variant: StatutVariant; label: strin
 }
 
 function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('fr-FR', {
+  return new Intl.DateTimeFormat('fr-FR', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+  }).format(new Date(date));
 }
 
 export function AdminCommandes() {
@@ -64,6 +67,7 @@ export function AdminCommandes() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const [filtreStatut, setFiltreStatut] = useState('TOUS');
+  const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Commande | null>(null);
   const [nouveauStatut, setNouveauStatut] = useState('');
   const [saving, setSaving] = useState(false);
@@ -97,6 +101,11 @@ export function AdminCommandes() {
     return commandes.filter((commande) => commande.statut === filtreStatut);
   }, [commandes, filtreStatut]);
 
+  const PAGE_SIZE = 15;
+  const totalPages = Math.max(1, Math.ceil(commandesFiltrees.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageCommandes = commandesFiltrees.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   const openDetail = (commande: Commande) => {
     setSelected(commande);
     setNouveauStatut(commande.statut);
@@ -122,31 +131,33 @@ export function AdminCommandes() {
       key: 'numero',
       label: 'Commande',
       render: (commande) => (
-        <span className="font-medium text-slate-900">{commande.numero}</span>
+        <span className="font-mono text-sm font-semibold text-ink">{commande.numero}</span>
       ),
     },
     {
       key: 'client',
       label: 'Client',
       render: (commande) => (
-        <div>
-          <p className="font-medium text-slate-900">
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-ink">
             {commande.user?.prenom} {commande.user?.nom}
           </p>
-          <p className="text-xs text-slate-500">{commande.user?.email}</p>
+          <p className="truncate text-xs text-ink-soft">{commande.user?.email}</p>
         </div>
       ),
     },
     {
       key: 'date',
       label: 'Date',
-      render: (commande) => <span className="text-slate-600">{formatDate(commande.created_at)}</span>,
+      render: (commande) => (
+        <span className="text-[13px] text-ink-soft">{formatDate(commande.created_at)}</span>
+      ),
     },
     {
       key: 'montant',
       label: 'Montant',
       render: (commande) => (
-        <span className="font-semibold tabular-nums text-slate-900">
+        <span className="font-display font-semibold tabular-nums text-ink">
           {formatPrix(commande.montant_total)}
         </span>
       ),
@@ -165,35 +176,40 @@ export function AdminCommandes() {
     },
     {
       key: 'actions',
-      label: '',
+      label: 'Actions',
       render: (commande) => (
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => openDetail(commande)}
           aria-label={`Voir la commande ${commande.numero}`}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-primary-500 hover:text-primary-700"
         >
-          <Eye size={14} aria-hidden="true" />
+          <Eye size={14} className="mr-1" aria-hidden="true" />
           Détail
-        </button>
+        </Button>
       ),
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Commandes</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-display text-[26px] font-semibold leading-tight text-ink sm:text-[30px]">
+            Commandes
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
             Suivez et mettez à jour le statut des commandes de vos clients.
           </p>
         </div>
-        <div className="w-full sm:w-56">
+        <div className="w-full sm:w-64">
           <Select
             aria-label="Filtrer par statut"
             value={filtreStatut}
-            onChange={(e) => setFiltreStatut(e.target.value)}
+            onChange={(e) => {
+              setFiltreStatut(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="TOUS">Tous les statuts</option>
             {statutsDisponibles.map((statut) => (
@@ -207,13 +223,33 @@ export function AdminCommandes() {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <Card className="p-0">
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between gap-3 border-b border-border-brand px-4 py-4 sm:px-6">
+          <h2 className="font-display text-base font-semibold text-ink">
+            {filtreStatut === 'TOUS'
+              ? 'Toutes les commandes'
+              : statutConfig[filtreStatut]?.label ?? 'Commandes'}
+          </h2>
+          <p className="text-[13px] text-ink-soft">
+            {commandesFiltrees.length} commande{commandesFiltrees.length > 1 ? 's' : ''}
+          </p>
+        </div>
         <Table
           columns={columns}
-          data={commandesFiltrees}
+          data={pageCommandes}
           loading={loading}
           emptyMessage="Aucune commande trouvée"
         />
+        {!loading && commandesFiltrees.length > PAGE_SIZE && (
+          <div className="border-t border-border-brand px-4 py-3 sm:px-6">
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={commandesFiltrees.length}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Modal — Détail de la commande */}
@@ -228,15 +264,15 @@ export function AdminCommandes() {
               <Badge variant={getStatutConfig(selected.statut).variant} dot>
                 {getStatutConfig(selected.statut).label}
               </Badge>
-              <span className="text-sm text-slate-500">{formatDate(selected.created_at)}</span>
+              <span className="text-[13px] text-ink-soft">{formatDate(selected.created_at)}</span>
             </div>
 
             {/* Client */}
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-              <p className="font-semibold text-slate-900">
+            <div className="rounded-xl border border-border-brand bg-page p-4 text-sm">
+              <p className="font-semibold text-ink">
                 {selected.user?.prenom} {selected.user?.nom}
               </p>
-              <p className="mt-0.5 text-slate-600">{selected.user?.email}</p>
+              <p className="mt-0.5 text-ink-soft">{selected.user?.email}</p>
             </div>
 
             {/* Articles */}
@@ -244,12 +280,12 @@ export function AdminCommandes() {
               {selected.details.map((detail) => (
                 <div key={detail.id} className="flex items-center justify-between gap-3 text-sm">
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{detail.nom_produit}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="truncate font-semibold text-ink">{detail.nom_produit}</p>
+                    <p className="font-mono text-xs text-ink-soft">
                       {detail.quantite} × {formatPrix(detail.prix_unitaire)}
                     </p>
                   </div>
-                  <p className="shrink-0 font-semibold tabular-nums text-slate-900">
+                  <p className="shrink-0 font-display font-semibold tabular-nums text-ink">
                     {formatPrix(detail.sous_total)}
                   </p>
                 </div>
@@ -257,22 +293,22 @@ export function AdminCommandes() {
             </div>
 
             {/* Totaux */}
-            <div className="space-y-2 border-t border-slate-200 pt-3 text-sm">
+            <div className="space-y-2 border-t border-border-brand pt-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-slate-600">Sous-total</span>
-                <span className="font-medium tabular-nums text-slate-900">
+                <span className="text-ink-soft">Sous-total</span>
+                <span className="font-semibold tabular-nums text-ink">
                   {formatPrix(toNumber(selected.montant_total) - toNumber(selected.frais_livraison))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-slate-600">Frais de livraison</span>
-                <span className="font-medium tabular-nums text-slate-900">
+                <span className="text-ink-soft">Frais de livraison</span>
+                <span className="font-semibold tabular-nums text-ink">
                   {formatPrix(selected.frais_livraison)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-2">
-                <span className="font-semibold text-slate-900">Total</span>
-                <span className="text-lg font-bold tabular-nums text-slate-900">
+              <div className="flex items-center justify-between border-t border-border-brand pt-3">
+                <span className="font-display text-lg font-semibold text-ink">Total</span>
+                <span className="font-display text-lg font-semibold tabular-nums text-ink">
                   {formatPrix(selected.montant_total)}
                 </span>
               </div>
@@ -280,11 +316,9 @@ export function AdminCommandes() {
 
             {/* Adresse de livraison */}
             {selected.adresse_livraison && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-                <p className="font-semibold text-slate-900">
-                  {selected.adresse_livraison.libelle}
-                </p>
-                <p className="mt-1 text-slate-600">
+              <div className="rounded-xl border border-border-brand bg-page p-4 text-sm">
+                <p className="font-semibold text-ink">{selected.adresse_livraison.libelle}</p>
+                <p className="mt-1 text-ink-soft">
                   {selected.adresse_livraison.adresse}
                   <br />
                   {selected.adresse_livraison.code_postal
@@ -296,7 +330,7 @@ export function AdminCommandes() {
             )}
 
             {/* Changement de statut */}
-            <div className="border-t border-slate-200 pt-4">
+            <div className="border-t border-border-brand pt-4">
               <Select
                 label="Changer le statut"
                 value={nouveauStatut}
@@ -308,14 +342,15 @@ export function AdminCommandes() {
                   </option>
                 ))}
               </Select>
-              <button
+              <Button
                 type="button"
                 onClick={handleChangeStatut}
                 disabled={saving || nouveauStatut === selected.statut}
-                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                loading={saving}
+                className="mt-4 w-full"
               >
                 {saving ? 'Mise à jour…' : 'Mettre à jour le statut'}
-              </button>
+              </Button>
             </div>
           </div>
         )}

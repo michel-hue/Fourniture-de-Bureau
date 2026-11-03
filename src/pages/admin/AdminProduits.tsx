@@ -39,6 +39,12 @@ const emptyForm: ProduitForm = {
   actif: true,
 };
 
+/** Stock d'un produit : quantité + seuil d'alerte réel (jamais codé en dur). */
+interface StockResume {
+  quantite: number;
+  seuil_alerte: number;
+}
+
 const PAGE_SIZE = 10;
 
 export function AdminProduits() {
@@ -47,7 +53,7 @@ export function AdminProduits() {
   const { showToast } = useToast();
   const [produits, setProduits] = useState<Produit[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
-  const [stocksMap, setStocksMap] = useState<Record<string, number>>({});
+  const [stocksMap, setStocksMap] = useState<Record<string, StockResume>>({});
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -108,9 +114,12 @@ export function AdminProduits() {
         setProduits(produitsRes.data.data);
         setTotal(produitsRes.data.meta.total);
         setTotalPages(produitsRes.data.meta.totalPages);
-        const map: Record<string, number> = {};
+        const map: Record<string, StockResume> = {};
         for (const stock of stocksRes.data.data) {
-          map[stock.produit_id] = stock.quantite;
+          map[stock.produit_id] = {
+            quantite: stock.quantite,
+            seuil_alerte: stock.seuil_alerte,
+          };
         }
         setStocksMap(map);
       } catch {
@@ -211,7 +220,7 @@ export function AdminProduits() {
     } catch (err) {
       const message =
         (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-        'Une erreur est survenue lors de l\'enregistrement.';
+        "Une erreur est survenue lors de l'enregistrement.";
       setFormError(message);
     } finally {
       setSaving(false);
@@ -243,11 +252,23 @@ export function AdminProduits() {
       key: 'nom',
       label: 'Produit',
       render: (produit) => (
-        <div>
-          <p className="font-medium text-slate-900">{produit.nom}</p>
-          {produit.reference && (
-            <p className="text-xs text-slate-500">Réf. {produit.reference}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          {produit.images?.[0] ? (
+            <img
+              src={produit.images[0].url}
+              alt=""
+              loading="lazy"
+              className="h-10 w-10 shrink-0 rounded-lg border border-border-brand object-cover"
+            />
+          ) : (
+            <span className="h-10 w-10 shrink-0 rounded-lg bg-page" aria-hidden="true" />
           )}
+          <div className="min-w-0">
+            <p className="truncate font-medium text-ink">{produit.nom}</p>
+            {produit.reference && (
+              <p className="font-mono text-xs text-ink-soft">{produit.reference}</p>
+            )}
+          </div>
         </div>
       ),
     },
@@ -255,14 +276,14 @@ export function AdminProduits() {
       key: 'categorie',
       label: 'Catégorie',
       render: (produit) => (
-        <span className="text-slate-600">{produit.categorie?.nom ?? '—'}</span>
+        <span className="text-ink-soft">{produit.categorie?.nom ?? '—'}</span>
       ),
     },
     {
       key: 'prix',
       label: 'Prix',
       render: (produit) => (
-        <span className="font-semibold tabular-nums text-slate-900">
+        <span className="font-display font-semibold tabular-nums text-ink">
           {formatPrix(produit.prix)}
         </span>
       ),
@@ -271,28 +292,34 @@ export function AdminProduits() {
       key: 'stock',
       label: 'Stock',
       render: (produit) => {
-        const quantite = stocksMap[produit.id];
-        if (quantite === undefined) {
-          return <span className="text-slate-400">—</span>;
+        const stock = stocksMap[produit.id];
+        if (!stock) {
+          return <span className="text-ink-soft">—</span>;
         }
-        if (quantite === 0) {
-          return (
-            <Badge variant="error" dot>
-              Rupture
-            </Badge>
-          );
-        }
-        if (quantite <= 5) {
-          return (
-            <Badge variant="warning" dot>
-              Stock faible
-            </Badge>
-          );
-        }
+        const { quantite, seuil_alerte: seuil } = stock;
         return (
-          <Badge variant="success" dot>
-            En stock
-          </Badge>
+          <div className="flex flex-col items-start gap-1">
+            {quantite === 0 ? (
+              <Badge variant="error" dot>
+                Rupture
+              </Badge>
+            ) : quantite < seuil ? (
+              <Badge variant="warning" dot>
+                Stock faible
+              </Badge>
+            ) : quantite === seuil ? (
+              <Badge variant="warning" dot>
+                Seuil atteint
+              </Badge>
+            ) : (
+              <Badge variant="success" dot>
+                En stock
+              </Badge>
+            )}
+            <span className="font-mono text-xs tabular-nums text-ink-soft">
+              {quantite} / {seuil}
+            </span>
+          </div>
         );
       },
     },
@@ -338,11 +365,13 @@ export function AdminProduits() {
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Produits</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-display text-[26px] font-semibold leading-tight text-ink sm:text-[30px]">
+            Produits
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
             Gérez les produits de votre catalogue ({total} au total).
           </p>
         </div>
@@ -351,18 +380,14 @@ export function AdminProduits() {
         </Button>
       </div>
 
-      {error && (
-        <div className="mt-4">
-          <Alert type="error" message={error} onClose={() => setError('')} />
-        </div>
-      )}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <Card className="mt-6 overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 md:flex-row md:items-center">
-          <form onSubmit={handleSearchSubmit} className="relative md:w-72">
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-border-brand p-4 md:flex-row md:items-center">
+          <form onSubmit={handleSearchSubmit} className="relative w-full md:w-72">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
               aria-hidden="true"
             />
             <input
@@ -371,7 +396,7 @@ export function AdminProduits() {
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Rechercher un produit…"
               aria-label="Rechercher un produit"
-              className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm text-slate-900 shadow-xs transition-colors placeholder:text-slate-400 focus:border-primary-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10"
+              className="h-10 w-full rounded-lg border border-line-strong bg-white pl-10 pr-3 text-sm text-ink shadow-sm transition-[border-color,box-shadow] focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/12"
             />
           </form>
           <Select
@@ -397,7 +422,7 @@ export function AdminProduits() {
         />
 
         {totalPages > 1 && (
-          <div className="border-t border-slate-200 px-4 py-3">
+          <div className="border-t border-border-brand px-4 py-3">
             <Pagination
               page={page}
               totalPages={totalPages}
@@ -493,12 +518,12 @@ export function AdminProduits() {
               </option>
             ))}
           </Select>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-semibold text-ink">
             <input
               type="checkbox"
               checked={form.actif}
               onChange={(e) => setForm({ ...form, actif: e.target.checked })}
-              className="h-4 w-4 rounded border-slate-300 text-primary-900 focus:ring-primary-500"
+              className="h-4 w-4 rounded border-line-strong accent-primary-600"
             />
             Produit actif
           </label>
@@ -520,10 +545,10 @@ export function AdminProduits() {
           </>
         }
       >
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-ink-soft">
           Êtes-vous sûr de vouloir supprimer le produit{' '}
-          <span className="font-semibold text-slate-900">{deleteTarget?.nom}</span> ? Cette action
-          est irréversible.
+          <span className="font-semibold text-ink">{deleteTarget?.nom}</span> ? Cette action est
+          irréversible.
         </p>
       </Modal>
     </div>

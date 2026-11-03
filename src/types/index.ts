@@ -56,6 +56,26 @@ export interface Stock {
   updated_at: string;
 }
 
+/**
+ * Stock public d'un produit — endpoint public `GET /produits/:id/stock`.
+ *
+ * - `quantite` : quantité disponible en stock
+ * - `seuil_alerte` : seuil « stock faible » propre au produit (défini en base,
+ *   pas de constante côté front)
+ * - `disponible` : `quantite > 0`
+ * - `en_rupture` : `quantite <= 0`
+ *
+ * Un produit sans ligne de stock est renvoyé avec `quantite: 0` et
+ * `seuil_alerte: 0` — il est donc considéré en rupture.
+ */
+export interface ProductStock {
+  produit_id: string;
+  quantite: number;
+  seuil_alerte: number;
+  disponible: boolean;
+  en_rupture: boolean;
+}
+
 export interface PanierDetail {
   id: string;
   panier_id: string;

@@ -1,9 +1,16 @@
 import { useEffect } from 'react';
 
-const SITE_URL = 'https://www.bureaustore.fr';
-const DEFAULT_TITLE = 'BureauStore - Fournitures de Bureau';
+/**
+ * Domaine public du site — point unique de configuration.
+ * Renseigné via `VITE_SITE_URL` (voir `.env.example`) ; fallback documenté ici.
+ */
+const SITE_URL = (import.meta.env.VITE_SITE_URL ?? 'https://www.workstore.ci').replace(/\/+$/, '');
+const SITE_NAME = 'WorkStore';
+const DEFAULT_TITLE = 'WorkStore - Fournitures de Bureau';
 const DEFAULT_DESCRIPTION =
-  'Papeterie, mobilier, informatique : plus de 10 000 références de fournitures de bureau au meilleur prix. Livraison 24/48h en France.';
+  'Papeterie, informatique et fournitures de bureau : des milliers de références au meilleur prix, livrées à Abidjan en 48 h.';
+
+export { SITE_URL, SITE_NAME, DEFAULT_TITLE, DEFAULT_DESCRIPTION };
 
 interface PageMetaOptions {
   title: string;
@@ -42,7 +49,7 @@ function setLink(rel: string, href: string) {
  */
 export function usePageMeta({ title, description, path = '/', ogImage, noIndex }: PageMetaOptions) {
   useEffect(() => {
-    const fullTitle = title === DEFAULT_TITLE ? title : `${title} | BureauStore`;
+    const fullTitle = title === DEFAULT_TITLE ? title : `${title} | ${SITE_NAME}`;
     document.title = fullTitle;
 
     const desc = description ?? DEFAULT_DESCRIPTION;
@@ -51,7 +58,7 @@ export function usePageMeta({ title, description, path = '/', ogImage, noIndex }
     setMeta('property', 'og:description', desc);
     setMeta('property', 'og:type', 'website');
     setMeta('property', 'og:url', `${SITE_URL}${path}`);
-    setMeta('property', 'og:site_name', 'BureauStore');
+    setMeta('property', 'og:site_name', SITE_NAME);
     setMeta('property', 'og:image', `${SITE_URL}${ogImage ?? '/og-image.svg'}`);
     setMeta('name', 'twitter:card', 'summary_large_image');
     setMeta('name', 'twitter:title', fullTitle);

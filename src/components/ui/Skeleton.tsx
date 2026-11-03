@@ -1,13 +1,13 @@
 import type { HTMLAttributes } from 'react';
 
 export function Skeleton({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={`animate-pulse rounded-md bg-slate-200/70 ${className}`} {...props} />;
+  return <div className={`animate-pulse rounded-lg bg-border-brand ${className}`} {...props} />;
 }
 
 export function SkeletonCard() {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <Skeleton className="aspect-[4/3] rounded-none" />
+    <div className="overflow-hidden rounded-xl border border-border-brand bg-white shadow-card">
+      <Skeleton className="aspect-[4/3] rounded-none bg-surface" />
       <div className="space-y-3 p-4">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-4 w-1/2" />

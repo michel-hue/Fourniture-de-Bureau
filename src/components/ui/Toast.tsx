@@ -15,7 +15,7 @@ const toastConfig: Record<ToastType, { icon: LucideIcon; iconClass: string }> = 
   success: { icon: CheckCircle2, iconClass: 'text-success-500' },
   error: { icon: AlertCircle, iconClass: 'text-error-500' },
   warning: { icon: AlertTriangle, iconClass: 'text-warning-500' },
-  info: { icon: Info, iconClass: 'text-info-500' },
+  info: { icon: Info, iconClass: 'text-primary-400' },
 };
 
 const AUTO_DISMISS_MS = 4000;
@@ -27,7 +27,7 @@ function ToastItemView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id:
   return (
     <div
       role="status"
-      className="flex animate-toast-in items-center gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-lg"
+      className="flex animate-toast-in items-center gap-3 rounded-xl border border-white/10 bg-ink px-4 py-3 text-sm text-white shadow-aside"
     >
       <Icon size={18} className={`shrink-0 ${config.iconClass}`} aria-hidden="true" />
       <p className="min-w-0 flex-1">{toast.message}</p>
@@ -35,7 +35,7 @@ function ToastItemView({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id:
         type="button"
         onClick={() => onDismiss(toast.id)}
         aria-label="Fermer la notification"
-        className="shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+        className="shrink-0 rounded-lg p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
       >
         <X size={16} />
       </button>

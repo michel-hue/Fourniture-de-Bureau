@@ -8,4 +8,4 @@ Disallow: /adresses
 Disallow: /mes-commandes
 Disallow: /commande-confirmation
 
-Sitemap: https://www.bureaustore.fr/sitemap.xml
+Sitemap: https://www.workstore.ci/sitemap.xml

@@ -25,6 +25,14 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
+  updateProfile: (data: UpdateProfileData) => Promise<void>;
+  changePassword: (ancienPassword: string, nouveauPassword: string) => Promise<void>;
+}
+
+export interface UpdateProfileData {
+  nom: string;
+  prenom: string;
+  telephone?: string;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

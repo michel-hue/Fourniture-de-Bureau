@@ -5,15 +5,9 @@ export const stocksApi = {
   getAll: () => api.get<ApiResponse<Stock[]>>('/stocks'),
   getAlerts: () => api.get<ApiResponse<Stock[]>>('/stocks/alerts'),
   getOne: (id: string) => api.get<ApiResponse<Stock>>(`/stocks/${id}`),
-  /**
-   * Stock d'un produit.
-   *
-   * Endpoint PUBLIC : la page détail produit s'en sert pour afficher le badge
-   * « En stock » / « Rupture » et pour désactiver l'ajout au panier, y compris
-   * pour un visiteur non connecté (aucun token n'est requis).
-   */
-  getByProduit: (produitId: string) =>
-    api.get<ApiResponse<Stock>>(`/stocks/produit/${produitId}`),
+  // ⚠️ `GET /stocks/produit/:id` est réservé aux admins (403 côté API) : il
+  // n'est plus utilisé par le front public. La page détail produit utilise
+  // l'endpoint public `produitsApi.getStock()` (`GET /produits/:id/stock`).
   create: (data: Partial<Stock>) => api.post<ApiResponse<Stock>>('/stocks', data),
   update: (id: string, data: Partial<Stock>) =>
     api.patch<ApiResponse<Stock>>(`/stocks/${id}`, data),

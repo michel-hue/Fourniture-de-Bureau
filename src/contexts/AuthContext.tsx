@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import axios from 'axios';
 import api from '../api/axios';
 import { AuthContext } from './auth-context';
-import type { AuthContextValue, RegisterData, User } from './auth-context';
+import type { AuthContextValue, RegisterData, UpdateProfileData, User } from './auth-context';
 
 function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -65,6 +65,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(async (data: UpdateProfileData) => {
+    try {
+      const response = await api.patch('/auth/me', data);
+      const updated = (response.data as { data: User }).data;
+      localStorage.setItem('user', JSON.stringify(updated));
+      setUser(updated);
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error), { cause: error });
+    }
+  }, []);
+
+  const changePassword = useCallback(async (ancienPassword: string, nouveauPassword: string) => {
+    try {
+      await api.patch('/auth/me/password', {
+        ancien_password: ancienPassword,
+        nouveau_password: nouveauPassword,
+      });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error), { cause: error });
+    }
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -74,8 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       logout,
+      updateProfile,
+      changePassword,
     }),
-    [user, token, login, register, logout]
+    [user, token, login, register, logout, updateProfile, changePassword]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

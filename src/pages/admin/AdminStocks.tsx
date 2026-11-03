@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Pencil, AlertTriangle, PackageX } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Pencil, TriangleAlert, PackageX, Search } from 'lucide-react';
+import { Pagination } from '../../components/ui/Pagination';
+import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -14,6 +16,7 @@ import type { Stock } from '../../types';
 
 type StockStatus = 'ok' | 'seuil' | 'alerte' | 'rupture';
 
+/** Statut calculé à partir du seuil d'alerte réel de chaque produit. */
 function getStatus(stock: Stock): StockStatus {
   if (stock.quantite === 0) return 'rupture';
   if (stock.quantite < stock.seuil_alerte) return 'alerte';
@@ -21,10 +24,11 @@ function getStatus(stock: Stock): StockStatus {
   return 'ok';
 }
 
+/** Palette statut de la spec §1.1 : rupture = rouge, stock faible = jaune. */
 const statusConfig: Record<StockStatus, { label: string; badge: 'success' | 'warning' | 'error' }> = {
   ok: { label: 'En stock', badge: 'success' },
-  seuil: { label: 'Proche du seuil', badge: 'warning' },
-  alerte: { label: 'Stock faible', badge: 'error' },
+  seuil: { label: 'Seuil atteint', badge: 'warning' },
+  alerte: { label: 'Stock faible', badge: 'warning' },
   rupture: { label: 'Rupture', badge: 'error' },
 };
 
@@ -37,6 +41,22 @@ export function AdminStocks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'' | StockStatus>('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  const filteredStocks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return stocks.filter((stock) => {
+      if (statusFilter && getStatus(stock) !== statusFilter) return false;
+      if (!q) return true;
+      return `${stock.produit?.nom ?? ''} ${stock.produit?.reference ?? ''}`.toLowerCase().includes(q);
+    });
+  }, [stocks, search, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredStocks.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStocks = filteredStocks.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStock, setEditingStock] = useState<Stock | null>(null);
@@ -111,7 +131,7 @@ export function AdminStocks() {
     } catch (err) {
       const message =
         (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-        'Une erreur est survenue lors de la mise à jour.';
+        "Une erreur est survenue lors de la mise à jour.";
       setFormError(message);
     } finally {
       setSaving(false);
@@ -123,10 +143,10 @@ export function AdminStocks() {
       key: 'produit',
       label: 'Produit',
       render: (stock) => (
-        <div>
-          <p className="font-medium text-slate-900">{stock.produit?.nom ?? 'Produit inconnu'}</p>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-ink">{stock.produit?.nom ?? 'Produit inconnu'}</p>
           {stock.produit?.reference && (
-            <p className="text-xs text-slate-500">Réf. {stock.produit.reference}</p>
+            <p className="font-mono text-xs text-ink-soft">{stock.produit.reference}</p>
           )}
         </div>
       ),
@@ -135,14 +155,14 @@ export function AdminStocks() {
       key: 'quantite',
       label: 'Quantité',
       render: (stock) => (
-        <span className="font-semibold tabular-nums text-slate-900">{stock.quantite}</span>
+        <span className="font-display font-semibold tabular-nums text-ink">{stock.quantite}</span>
       ),
     },
     {
       key: 'seuil_alerte',
       label: "Seuil d'alerte",
       render: (stock) => (
-        <span className="tabular-nums text-slate-600">{stock.seuil_alerte}</span>
+        <span className="font-mono tabular-nums text-ink-soft">{stock.seuil_alerte}</span>
       ),
     },
     {
@@ -175,35 +195,38 @@ export function AdminStocks() {
   ];
 
   return (
-    <div>
+    <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Stocks</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="font-display text-[26px] font-semibold leading-tight text-ink sm:text-[30px]">
+          Stocks
+        </h1>
+        <p className="mt-1 text-sm text-ink-soft">
           Suivez et mettez à jour les niveaux de stock de vos produits.
         </p>
       </div>
 
-      {error && (
-        <div className="mt-4">
-          <Alert type="error" message={error} onClose={() => setError('')} />
-        </div>
-      )}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <Card className="mt-6 p-5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning-50 text-warning-600">
-            <AlertTriangle size={18} aria-hidden="true" />
+      <Card className="p-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-100 text-accent-700">
+            <TriangleAlert size={20} aria-hidden="true" />
           </span>
-          <h3 className="text-lg font-semibold tracking-tight text-slate-900">Alertes stock</h3>
+          <div>
+            <h2 className="font-display text-lg font-semibold text-ink">Alertes de stock</h2>
+            <p className="text-[13px] text-ink-soft">
+              Produits dont la quantité a atteint ou dépassé leur seuil d'alerte.
+            </p>
+          </div>
         </div>
         {loading ? (
           <div className="mt-4 space-y-2">
             {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="h-10 animate-pulse rounded-md bg-slate-200/70" />
+              <div key={index} className="h-16 animate-pulse rounded-xl bg-border-brand/60" />
             ))}
           </div>
         ) : alertes.length === 0 ? (
-          <p className="mt-4 flex items-center gap-2 text-sm text-success-700">
+          <p className="mt-4 flex items-center gap-2 text-sm font-semibold text-success-700">
             <span className="h-2 w-2 rounded-full bg-success-500" aria-hidden="true" />
             Aucune alerte : tous les produits sont correctement approvisionnés.
           </p>
@@ -215,23 +238,23 @@ export function AdminStocks() {
               return (
                 <li
                   key={stock.id}
-                  className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-xl border border-border-brand bg-white p-4 shadow-card sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-3">
                     {status === 'rupture' ? (
-                      <PackageX size={18} className="shrink-0 text-error-600" aria-hidden="true" />
+                      <PackageX size={18} className="shrink-0 text-error-700" aria-hidden="true" />
                     ) : (
-                      <AlertTriangle
+                      <TriangleAlert
                         size={18}
-                        className="shrink-0 text-warning-600"
+                        className="shrink-0 text-accent-700"
                         aria-hidden="true"
                       />
                     )}
                     <div>
-                      <p className="text-sm font-medium text-slate-900">
+                      <p className="text-sm font-semibold text-ink">
                         {stock.produit?.nom ?? 'Produit inconnu'}
                       </p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-mono text-xs text-ink-soft">
                         Quantité : {stock.quantite} — Seuil : {stock.seuil_alerte}
                       </p>
                     </div>
@@ -251,16 +274,69 @@ export function AdminStocks() {
         )}
       </Card>
 
-      <Card className="mt-6 overflow-hidden">
-        <div className="border-b border-slate-200 px-6 py-4">
-          <h3 className="font-semibold text-slate-900">Tous les stocks</h3>
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-border-brand p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <h2 className="font-display text-base font-semibold text-ink">Tous les stocks</h2>
+            <p className="text-[13px] text-ink-soft">
+              {filteredStocks.length} produit{filteredStocks.length > 1 ? 's' : ''}
+              {filteredStocks.length !== stocks.length ? ` sur ${stocks.length}` : ' suivis'}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative sm:w-64">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Produit ou référence…"
+                aria-label="Rechercher un stock"
+                className="h-10 w-full rounded-lg border border-line-strong bg-white pl-10 pr-3 text-sm text-ink shadow-sm transition-[border-color,box-shadow] focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/12"
+              />
+            </div>
+            <div className="sm:w-44">
+              <Select
+                aria-label="Filtrer par statut"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value as '' | StockStatus);
+                  setPage(1);
+                }}
+                className="!h-10 text-sm"
+              >
+                <option value="">Tous les statuts</option>
+                <option value="ok">En stock</option>
+                <option value="seuil">Seuil atteint</option>
+                <option value="alerte">Stock faible</option>
+                <option value="rupture">Rupture</option>
+              </Select>
+            </div>
+          </div>
         </div>
         <Table
           columns={columns}
-          data={stocks}
+          data={pageStocks}
           loading={loading}
-          emptyMessage="Aucun stock enregistré"
+          emptyMessage={search || statusFilter ? 'Aucun produit ne correspond à ces critères.' : 'Aucun stock enregistré'}
         />
+        {!loading && filteredStocks.length > PAGE_SIZE && (
+          <div className="border-t border-border-brand px-4 py-3 sm:px-6">
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={filteredStocks.length}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </Card>
 
       <Modal
@@ -299,6 +375,7 @@ export function AdminStocks() {
             value={seuil}
             onChange={(e) => setSeuil(e.target.value)}
             required
+            helper="Le produit passe en alerte dès que la quantité atteint ce seuil."
           />
         </form>
       </Modal>

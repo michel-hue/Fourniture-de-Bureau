@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Cookie } from 'lucide-react';
 import { Button } from './ui/Button';
 
-const CONSENT_KEY = 'bureaustore_cookie_consent';
+const CONSENT_KEY = 'workstore_cookie_consent';
 
 type Consent = 'accepted' | 'refused' | null;
 
@@ -36,14 +36,14 @@ export function CookieBanner() {
     <div
       role="dialog"
       aria-label="Gestion des cookies"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white p-4 shadow-2xl sm:p-6"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border-brand bg-white p-4 shadow-aside sm:p-6"
     >
       <div className="mx-auto flex max-w-7xl flex-col items-start gap-4 sm:flex-row sm:items-center">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface text-primary-600">
           <Cookie size={20} aria-hidden="true" />
         </span>
-        <div className="flex-1 text-sm text-slate-600">
-          <p className="font-semibold text-slate-900">Nous respectons votre vie privée</p>
+        <div className="flex-1 text-sm text-ink-soft">
+          <p className="font-display font-semibold text-ink">Nous respectons votre vie privée</p>
           <p className="mt-1">
             Nous utilisons des cookies pour améliorer votre expérience, mesurer l'audience et
             personnaliser nos offres. Consultez notre{' '}

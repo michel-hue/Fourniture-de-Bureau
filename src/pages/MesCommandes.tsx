@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PackageSearch, ChevronRight } from 'lucide-react';
+import { PackageSearch, ChevronRight, Truck } from 'lucide-react';
 import { commandesApi } from '../api/commandes.api';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -8,10 +8,12 @@ import { Alert } from '../components/ui/Alert';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton } from '../components/ui/Skeleton';
+import { Button } from '../components/ui/Button';
 import { formatPrix, toNumber } from '../utils/panier';
 import { getApiErrorMessage } from '../utils/errors';
 import { usePageMeta } from '../hooks/usePageMeta';
 import type { Commande } from '../types';
+import { PageHeader } from '../components/PageHeader';
 
 type StatutVariant =
   | 'neutral'
@@ -22,11 +24,12 @@ type StatutVariant =
   | 'error'
   | 'info';
 
+/** Pills statut (spec §1 « Palette statut »). */
 const statutConfig: Record<string, { variant: StatutVariant; label: string }> = {
   EN_ATTENTE: { variant: 'warning', label: 'En attente' },
-  PAYEE: { variant: 'info', label: 'Payée' },
+  PAYEE: { variant: 'success', label: 'Payée' },
   EN_PREPARATION: { variant: 'info', label: 'En préparation' },
-  EXPEDIEE: { variant: 'primary', label: 'Expédiée' },
+  EXPEDIEE: { variant: 'neutral', label: 'Expédiée' },
   LIVREE: { variant: 'success', label: 'Livrée' },
   ANNULEE: { variant: 'error', label: 'Annulée' },
 };
@@ -76,13 +79,11 @@ export function MesCommandes() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-        Mes commandes
-      </h1>
-      <p className="mt-2 text-sm text-slate-500">
-        Retrouvez ici l'historique de toutes vos commandes.
-      </p>
+    <div>
+      <PageHeader
+        title="Mes commandes"
+        description="Retrouvez l’historique et le suivi de toutes vos commandes."
+      />
 
       {error && (
         <div className="mt-6">
@@ -104,12 +105,7 @@ export function MesCommandes() {
             description="Vos commandes apparaîtront ici dès que vous aurez passé votre première commande."
             action={
               <Link to="/catalogue">
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center justify-center rounded-md bg-primary-900 px-4 text-sm font-medium text-white transition-all duration-150 hover:bg-primary-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 active:scale-[0.98]"
-                >
-                  Découvrir le catalogue
-                </button>
+                <Button>Découvrir le catalogue</Button>
               </Link>
             }
           />
@@ -132,8 +128,8 @@ export function MesCommandes() {
                 <Card variant="hover" className="cursor-pointer p-5">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <p className="font-semibold text-slate-900">Commande {commande.numero}</p>
-                      <p className="mt-0.5 text-sm text-slate-500">
+                      <p className="font-mono text-base font-semibold text-ink">{commande.numero}</p>
+                      <p className="mt-0.5 text-[13px] leading-[18px] text-ink-soft">
                         {formatDate(commande.created_at)}
                       </p>
                     </div>
@@ -141,14 +137,14 @@ export function MesCommandes() {
                       <Badge variant={statut.variant} dot>
                         {statut.label}
                       </Badge>
-                      <ChevronRight size={18} className="text-slate-400" aria-hidden="true" />
+                      <ChevronRight size={18} className="text-ink-soft" aria-hidden="true" />
                     </div>
                   </div>
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4">
-                    <p className="text-sm text-slate-600">
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-border-brand pt-4">
+                    <p className="text-sm text-ink-soft">
                       {nbArticles} article{nbArticles > 1 ? 's' : ''}
                     </p>
-                    <p className="text-lg font-bold tabular-nums text-slate-900">
+                    <p className="font-display text-xl font-semibold tabular-nums text-ink">
                       {formatPrix(commande.montant_total)}
                     </p>
                   </div>
@@ -171,52 +167,73 @@ export function MesCommandes() {
               <Badge variant={getStatutConfig(selected.statut).variant} dot>
                 {getStatutConfig(selected.statut).label}
               </Badge>
-              <span className="text-sm text-slate-500">{formatDate(selected.created_at)}</span>
+              <span className="text-sm text-ink-soft">{formatDate(selected.created_at)}</span>
             </div>
 
-            <div className="space-y-3">
-              {selected.details.map((detail) => (
-                <div key={detail.id} className="flex items-center justify-between gap-3 text-sm">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-slate-900">{detail.nom_produit}</p>
-                    <p className="text-xs text-slate-500">
-                      {detail.quantite} × {formatPrix(detail.prix_unitaire)}
-                    </p>
-                  </div>
-                  <p className="shrink-0 font-semibold tabular-nums text-slate-900">
-                    {formatPrix(detail.sous_total)}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {/* Lignes de commande (spec §2 « Tables ») */}
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="pb-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                    Produit
+                  </th>
+                  <th className="pb-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                    Qté
+                  </th>
+                  <th className="pb-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                    Montant
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {selected.details.map((detail) => (
+                  <tr key={detail.id} className="border-t border-border-brand">
+                    <td className="py-3 pr-3">
+                      <p className="font-semibold text-ink">{detail.nom_produit}</p>
+                      <p className="text-[13px] leading-[18px] text-ink-soft">
+                        {formatPrix(detail.prix_unitaire)}
+                      </p>
+                    </td>
+                    <td className="py-3 pr-3 font-display font-semibold tabular-nums text-ink">
+                      ×{detail.quantite}
+                    </td>
+                    <td className="py-3 text-right font-display font-semibold tabular-nums text-ink">
+                      {formatPrix(detail.sous_total)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-            <div className="space-y-2 border-t border-slate-200 pt-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Sous-total</span>
-                <span className="font-medium tabular-nums text-slate-900">
+            {/* Totaux (lignes `.sum`) */}
+            <div className="space-y-3 border-t border-border-brand pt-4 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-ink-soft">Sous-total</span>
+                <span className="font-display font-semibold tabular-nums text-ink">
                   {formatPrix(toNumber(selected.montant_total) - toNumber(selected.frais_livraison))}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600">Frais de livraison</span>
-                <span className="font-medium tabular-nums text-slate-900">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-ink-soft">Livraison à Abidjan</span>
+                <span className="font-display font-semibold tabular-nums text-ink">
                   {formatPrix(selected.frais_livraison)}
                 </span>
               </div>
-              <div className="flex items-center justify-between border-t border-slate-200 pt-2">
-                <span className="font-semibold text-slate-900">Total</span>
-                <span className="text-lg font-bold tabular-nums text-slate-900">
+              <div className="flex items-center justify-between gap-4 border-t border-border-brand pt-4">
+                <span className="text-[18px] font-semibold text-ink">Total</span>
+                <span className="font-display text-[28px] font-semibold tabular-nums text-ink">
                   {formatPrix(selected.montant_total)}
                 </span>
               </div>
             </div>
 
             {selected.adresse_livraison && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-                <p className="font-semibold text-slate-900">
+              <div className="rounded-xl border border-border-brand bg-page p-4 text-sm">
+                <p className="flex items-center gap-2 font-semibold text-ink">
+                  <Truck size={16} className="text-primary-600" aria-hidden="true" />
                   {selected.adresse_livraison.libelle}
                 </p>
-                <p className="mt-1 text-slate-600">
+                <p className="mt-1 text-[13px] leading-[18px] text-ink-soft">
                   {selected.adresse_livraison.adresse}
                   <br />
                   {selected.adresse_livraison.code_postal
